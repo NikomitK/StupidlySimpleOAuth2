@@ -123,8 +123,6 @@ public class OAuth2BrowserFlow extends OAuth2Flow {
 
     /**
      * Requests an OAuth2 access token using the previously acquired access code, as described in section 4.1.3 of RFC6749.
-     *
-     * @return the OAuth2Interaction object, so you can chain calls
      */
     public OAuth2BrowserFlow requestAccessToken() {
 
@@ -160,13 +158,6 @@ public class OAuth2BrowserFlow extends OAuth2Flow {
 
     }
 
-    /**
-     * Use the refresh token to refresh the access token.
-     *
-     * @return the OAuth2Interaction object, so you can chain calls
-     * @throws IOException          If there is an IOException in the HttpClient.send method
-     * @throws InterruptedException If the HttpClient.send method is interrupted
-     */
     public OAuth2BrowserFlow refreshAccessToken() {
 
         if (this.refreshToken == null) {
