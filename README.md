@@ -40,6 +40,12 @@ flow.refreshAccessToken(); // Refresh the access token in a way suitable for you
 flow.getAccessToken(); // Getter for the access token stored in the flow
 ```
 
+For simpler use, you can also chain these methods:
+
+```java
+flow.requestAccessToken().refreshAccessToken().getAccessToken(); // Getter for the access token stored in the flow
+```
+
 ## Available flows
 
 Currently, the following flows are available:
