@@ -1,9 +1,10 @@
 package net.nikomitk.ssoauth2.flows;
 
-import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
-import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 import net.nikomitk.ssoauth2.OAuth2Flow;
+import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
+import net.nikomitk.ssoauth2.exception.OAuth2FlowNotInitializedException;
+import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
 
 import java.io.IOException;
 import java.net.URI;
@@ -14,17 +15,16 @@ import java.net.http.HttpResponse;
 /**
  * Class encapsulating authorization using the Resource Owner Password Credentials Grant described in section 4.3 of RFC6749.
  */
-public class UserPasswordFlow extends OAuth2Flow {
+public class OAuth2UserPasswordFlow extends OAuth2Flow {
 
     private final OAuth2Endpoint endpoint;
     private final String clientID;
     private final String username;
     private final String password;
     private final String scope;
-    private OAuth2TokenResponse lastOAuth2TokenResponse;
     private HttpRequest httpRequest;
 
-    public UserPasswordFlow(final String wellKnownEndpoint, final String clientID, final String username, final String password, final String scope) {
+    public OAuth2UserPasswordFlow(final String wellKnownEndpoint, final String clientID, final String username, final String password, final String scope) {
 
         super();
         this.endpoint = OAuth2Endpoint.queryWellKnownEndpoint(wellKnownEndpoint);
@@ -35,7 +35,7 @@ public class UserPasswordFlow extends OAuth2Flow {
     }
 
     @Override
-    public UserPasswordFlow startFlow() {
+    public OAuth2UserPasswordFlow startFlow() {
 
         final String body = HttpFormBodyBuilder
                 .newBuilder()
@@ -57,8 +57,11 @@ public class UserPasswordFlow extends OAuth2Flow {
     }
 
     @Override
-    public UserPasswordFlow requestAccessToken() {
+    public OAuth2UserPasswordFlow requestAccessToken() {
 
+        if (this.httpRequest == null) {
+            throw new OAuth2FlowNotInitializedException();
+        }
         try (final HttpClient client = HttpClient.newHttpClient()) {
             final var response = client.send(this.httpRequest, HttpResponse.BodyHandlers.ofString());
             lastOAuth2TokenResponse = objectMapper.readValue(response.body(), OAuth2TokenResponse.class);
@@ -72,12 +75,6 @@ public class UserPasswordFlow extends OAuth2Flow {
     public OAuth2Flow refreshAccessToken() {
 
         return this.requestAccessToken();
-    }
-
-    @Override
-    public String getAccessToken() {
-
-        return this.lastOAuth2TokenResponse.getAccessToken();
     }
 
 }

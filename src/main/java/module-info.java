@@ -9,5 +9,4 @@ module net.nikomitk.ssoauth2 {
     exports net.nikomitk.ssoauth2;
     exports  net.nikomitk.ssoauth2.flows;
     exports net.nikomitk.ssoauth2.dto;
-    exports net.nikomitk.ssoauth2.util;
 }

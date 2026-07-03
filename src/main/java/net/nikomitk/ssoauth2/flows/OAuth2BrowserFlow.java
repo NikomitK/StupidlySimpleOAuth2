@@ -2,10 +2,11 @@ package net.nikomitk.ssoauth2.flows;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
-import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
-import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 import net.nikomitk.ssoauth2.OAuth2Flow;
+import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
+import net.nikomitk.ssoauth2.exception.OAuth2FlowNotInitializedException;
+import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
 
 import java.io.IOException;
 import java.net.URI;
@@ -24,7 +25,6 @@ public class OAuth2BrowserFlow extends OAuth2Flow {
     private final OAuth2Endpoint endpoint;
     private final String clientID;
     private final String scope;
-    private OAuth2TokenResponse lastOAuth2TokenResponse;
     private String refreshToken;
 
     /**
@@ -55,12 +55,11 @@ public class OAuth2BrowserFlow extends OAuth2Flow {
     /**
      * The main method of this class. It starts an http server, opens the created SSO url in the users browser, and blocks until it get's an http request. This is usually the redirect of the OAuth2 provider.
      *
-     * @return the access code, as described in section 1.3.1 of RFC6749.
      * @throws IOException          if starting the http server throws an IOException
      * @throws InterruptedException if the http server gets interrupted
      * @throws URISyntaxException   if it can't construct a valid URI from the input parameters.
      */
-    public String browserBasedAccessCodeFlow() throws IOException, InterruptedException, URISyntaxException {
+    private void browserBasedAccessCodeFlow() throws IOException, InterruptedException, URISyntaxException {
 
         synchronized (atomicAccessCode) {
             startHttpServer();
@@ -71,7 +70,6 @@ public class OAuth2BrowserFlow extends OAuth2Flow {
                     .exec(new String[]{"xdg-open", url});
             atomicAccessCode.wait();
         }
-        return atomicAccessCode.get();
     }
 
     private void startHttpServer() throws IOException {
@@ -130,6 +128,10 @@ public class OAuth2BrowserFlow extends OAuth2Flow {
      */
     public OAuth2BrowserFlow requestAccessToken() {
 
+        if (atomicAccessCode.get() == null) {
+            throw new OAuth2FlowNotInitializedException();
+        }
+
         final String body = HttpFormBodyBuilder
                 .newBuilder()
                 .addFormData("grant_type", "authorization_code")
@@ -167,6 +169,9 @@ public class OAuth2BrowserFlow extends OAuth2Flow {
      */
     public OAuth2BrowserFlow refreshAccessToken() {
 
+        if (this.refreshToken == null) {
+            throw new OAuth2FlowNotInitializedException();
+        }
         final String body = HttpFormBodyBuilder
                 .newBuilder()
                 .addFormData("grant_type", "refresh_token")
@@ -187,12 +192,6 @@ public class OAuth2BrowserFlow extends OAuth2Flow {
             throw new RuntimeException(e);
         }
         return this;
-    }
-
-    @Override
-    public String getAccessToken() {
-
-        return this.lastOAuth2TokenResponse.getAccessToken();
     }
 
 }
