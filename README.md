@@ -1,4 +1,4 @@
-![Maven Central Version](https://img.shields.io/maven-central/v/net.nikomitk/ssoauth2-client)
+[![Maven Central Version](https://img.shields.io/maven-central/v/net.nikomitk/ssoauth2-client)](https://central.sonatype.com/artifact/net.nikomitk/ssoauth2-client)
 # Stupidly Simple OAuth2
 
 This is my personal OAuth2 library for use in locally installed java applications.
