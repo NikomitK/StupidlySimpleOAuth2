@@ -1,5 +1,6 @@
 package net.nikomitk.ssoauth2.exception;
 
+@SuppressWarnings("unused")
 public class OAuth2FlowNotReadyException extends RuntimeException {
 
     public OAuth2FlowNotReadyException(String message) {

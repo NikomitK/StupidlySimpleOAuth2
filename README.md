@@ -6,7 +6,7 @@ The only dependency is on [FasterXML/jackson](https://github.com/FasterXML/jacks
 
 ## Why this exists
 
-I wanted to enable an application i developed to use OAuth2 and I couldn't find a slim and easy to use library.
+I wanted to enable an application I developed to use OAuth2 and I couldn't find a slim and easy to use library.
 That's why I created my own.
 
 ## Usage
@@ -53,7 +53,7 @@ Currently, the following flows are available:
  - OAuth2BrowserFlow ([Section 4.1 of RFC6749](https://datatracker.ietf.org/doc/html/rfc6749#section-4.1))
    - Starts an http server on port 6767, opens the sso login in the users browser with redirection url of "http://localhost:6767/oauth2/redirect"
  - OAuth2UserPasswordFlow ([Section 4.3 of RFC6749](https://datatracker.ietf.org/doc/html/rfc6749#section-4.3))
-   - Get's an access token directly using a username and password. 
+   - Gets an access token directly using a username and password. 
 
 I plan to add more in the future, but I currently don't have enough time.
 Contributions are welcome.

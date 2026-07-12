@@ -15,6 +15,7 @@ import java.net.http.HttpResponse;
 /**
  * Class encapsulating authorization using the Resource Owner Password Credentials Grant described in section 4.3 of RFC6749.
  */
+@SuppressWarnings("unused")
 public class OAuth2UserPasswordFlow extends OAuth2Flow {
 
     private final OAuth2Endpoint endpoint;

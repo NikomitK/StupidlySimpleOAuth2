@@ -1,5 +1,6 @@
 package net.nikomitk.ssoauth2.exception;
 
+@SuppressWarnings("unused")
 public class OAuth2FlowNotInitializedException extends OAuth2FlowNotReadyException {
 
     public OAuth2FlowNotInitializedException(final String message) {

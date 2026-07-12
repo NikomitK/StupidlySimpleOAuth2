@@ -8,9 +8,10 @@ import net.nikomitk.ssoauth2.exception.OAuth2FlowNotReadyException;
 
 import java.time.Instant;
 
+@SuppressWarnings("unused")
 public abstract class OAuth2Flow {
 
-    protected ObjectMapper objectMapper;
+    protected final ObjectMapper objectMapper;
 
     protected OAuth2TokenResponse lastOAuth2TokenResponse;
 
