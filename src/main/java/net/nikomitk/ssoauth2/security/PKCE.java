@@ -38,6 +38,7 @@ public enum PKCE {
     private final Function<String, String> codeChallengeGenerator;
     @Getter
     private final String codeChallengeMethod;
+    private final static SecureRandom secureRandom = new SecureRandom();
 
     PKCE(final Function<String, String> codeChallengeGenerator, final String codeChallengeMethod) {
 
@@ -51,7 +52,7 @@ public enum PKCE {
             throw new StandardValidationException(7636, "https://www.rfc-editor.org/info/rfc7636/#section-4.1", "The PKCE code verifier has to be between 43 characters (32 bytes) and 128 characters (95 bytes) of Base64.");
         }
         final byte[] bytes = new byte[randomByteCount];
-        new SecureRandom().nextBytes(bytes);
+        secureRandom.nextBytes(bytes);
         return Base64
                 .getUrlEncoder().withoutPadding()
                 .encodeToString(bytes);
