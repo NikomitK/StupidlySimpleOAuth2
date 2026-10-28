@@ -6,6 +6,7 @@ import net.nikomitk.ssoauth2.OAuth2Flow;
 import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowNotInitializedException;
+import net.nikomitk.ssoauth2.security.PKCE;
 import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
 
 import java.io.IOException;
@@ -22,10 +23,12 @@ import java.util.concurrent.atomic.AtomicReference;
 public class OAuth2BrowserFlow extends OAuth2Flow {
 
     private final AtomicReference<String> atomicAccessCode = new AtomicReference<>();
+    private final PKCE pkce;
     private final OAuth2Endpoint endpoint;
     private final String clientID;
     private final String scope;
     private String refreshToken;
+    private String lastCodeVerifier;
 
     /**
      * Create a new Instance of the OAuth2BrowserFlow.
@@ -33,12 +36,14 @@ public class OAuth2BrowserFlow extends OAuth2Flow {
      * @param wellKnownEndpoint the well-known-endpoint of your OAuth2 provider. Usually ends with /.well-known/openid-configuration
      * @param clientID          the OAuth2 clientID of your public OAuth2 client
      * @param scope             space separated strings, which should be requested from the OAuth2 provider. Example: "string1 string2 string3"
+     * @param pkce              the {@link PKCE} instance to use for the OAuth2 flow. If it is null, the flow does not use PKCE. This is not recommended.
      */
-    public OAuth2BrowserFlow(final String wellKnownEndpoint, final String clientID, final String scope) {
+    public OAuth2BrowserFlow(final String wellKnownEndpoint, final String clientID, final String scope, final PKCE pkce) {
 
         this.endpoint = OAuth2Endpoint.queryWellKnownEndpoint(wellKnownEndpoint);
         this.clientID = clientID;
         this.scope = scope;
+        this.pkce = pkce;
     }
 
     @Override
@@ -64,7 +69,9 @@ public class OAuth2BrowserFlow extends OAuth2Flow {
             startHttpServer();
             final String url = buildUrl();
 
-            Runtime.getRuntime().exec(new String[]{"xdg-open", url});
+            Runtime
+                    .getRuntime()
+                    .exec(new String[]{"xdg-open", url});
             atomicAccessCode.wait();
         }
     }
@@ -73,7 +80,9 @@ public class OAuth2BrowserFlow extends OAuth2Flow {
 
         final HttpServer server = HttpServer.create(new java.net.InetSocketAddress(6767), 0);
         server.createContext("/oauth2/redirect", exchange -> {
-            final String query = exchange.getRequestURI().getQuery();
+            final String query = exchange
+                    .getRequestURI()
+                    .getQuery();
             final String[] params = query.split("&");
             String code = null;
             for (final String param : params) {
@@ -100,15 +109,36 @@ public class OAuth2BrowserFlow extends OAuth2Flow {
 
     private String buildUrl() {
 
-        return endpoint.getAuthorizationEndpoint() + "?response_type=code" + "&client_id=" + this.clientID + "&redirect_uri=http://localhost:6767/oauth2/redirect" + "&scope=" + this.scope;
+        String url = endpoint.getAuthorizationEndpoint()
+                + "?response_type=code"
+                + "&client_id=" + this.clientID
+                + "&redirect_uri=http://localhost:6767/oauth2/redirect"
+                + "&scope=" + this.scope;
+
+        if (pkce != null) {
+
+            lastCodeVerifier = PKCE.generateCodeVerifier(32);
+
+            url = url
+                    + "&code_challenge=" + pkce.generateCodeChallenge(lastCodeVerifier)
+                    + "&code_challenge_method=" + pkce.getCodeChallengeMethod();
+        }
+
+        return url;
     }
 
     private static void sendResponse(final HttpExchange exchange, final int responseCode,
                                      final String responseBody) throws IOException {
 
         exchange.sendResponseHeaders(responseCode, responseBody.length());
-        exchange.getResponseBody().write(responseBody.getBytes());
-        exchange.getResponseBody().close();
+
+        exchange
+                .getResponseBody()
+                .write(responseBody.getBytes());
+
+        exchange
+                .getResponseBody()
+                .close();
         exchange.close();
     }
 
@@ -121,19 +151,25 @@ public class OAuth2BrowserFlow extends OAuth2Flow {
             throw new OAuth2FlowNotInitializedException();
         }
 
-        final String body = HttpFormBodyBuilder.newBuilder()
-                                               .addFormData("grant_type", "authorization_code")
-                                               .addFormData("scope", scope)
-                                               .addFormData("code", atomicAccessCode.get())
-                                               .addFormData("redirect_uri", "http://localhost:6767/oauth2/redirect")
-                                               .addFormData("client_id", clientID)
-                                               .build();
+        final HttpFormBodyBuilder bodyBuilder = HttpFormBodyBuilder
+                .newBuilder()
+                .addFormData("grant_type", "authorization_code")
+                .addFormData("scope", scope)
+                .addFormData("code", atomicAccessCode.get())
+                .addFormData("redirect_uri", "http://localhost:6767/oauth2/redirect")
+                .addFormData("client_id", clientID);
 
-        final HttpRequest request = HttpRequest.newBuilder()
-                                               .uri(URI.create(endpoint.getTokenEndpoint()))
-                                               .header("Content-Type", "application/x-www-form-urlencoded")
-                                               .method("POST", HttpRequest.BodyPublishers.ofString(body))
-                                               .build();
+        if(this.pkce != null) {
+            bodyBuilder.addFormData("code_verifier", lastCodeVerifier);
+        }
+        final String body = bodyBuilder.build();
+
+        final HttpRequest request = HttpRequest
+                .newBuilder()
+                .uri(URI.create(endpoint.getTokenEndpoint()))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .method("POST", HttpRequest.BodyPublishers.ofString(body))
+                .build();
 
         final HttpResponse<String> response;
         try (final HttpClient client = HttpClient.newHttpClient()) {
@@ -152,17 +188,20 @@ public class OAuth2BrowserFlow extends OAuth2Flow {
         if (this.refreshToken == null) {
             throw new OAuth2FlowNotInitializedException();
         }
-        final String body = HttpFormBodyBuilder.newBuilder()
-                                               .addFormData("grant_type", "refresh_token")
-                                               .addFormData("refresh_token", this.refreshToken)
-                                               .addFormData("scope", scope)
-                                               .addFormData("client_id", this.clientID)
-                                               .build();
-        final HttpRequest request = HttpRequest.newBuilder()
-                                               .uri(URI.create(endpoint.getTokenEndpoint()))
-                                               .header("Content-Type", "application/x-www-form-urlencoded")
-                                               .method("POST", HttpRequest.BodyPublishers.ofString(body))
-                                               .build();
+        final String body = HttpFormBodyBuilder
+                .newBuilder()
+                .addFormData("grant_type", "refresh_token")
+                .addFormData("refresh_token", this.refreshToken)
+                .addFormData("scope", scope)
+                .addFormData("client_id", this.clientID)
+                .build();
+        final HttpRequest request = HttpRequest
+                .newBuilder()
+                .uri(URI.create(endpoint.getTokenEndpoint()))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .method("POST", HttpRequest.BodyPublishers.ofString(body))
+                .build();
+
         try (final HttpClient client = HttpClient.newHttpClient()) {
             final var response = client.send(request, HttpResponse.BodyHandlers.ofString());
             this.lastOAuth2TokenResponse = objectMapper.readValue(response.body(), OAuth2TokenResponse.class);
