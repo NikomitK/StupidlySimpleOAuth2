@@ -53,15 +53,13 @@ public enum PKCE {
         final byte[] bytes = new byte[randomByteCount];
         new SecureRandom().nextBytes(bytes);
         return Base64
-                .getUrlEncoder()
+                .getUrlEncoder().withoutPadding()
                 .encodeToString(bytes);
     }
 
     private static String createS256CodeChallenge(final String codeVerifier) {
 
-        final byte[] asciiCodeVerifier = StandardCharsets.US_ASCII
-                .encode(codeVerifier)
-                .array();
+        final byte[] asciiCodeVerifier = codeVerifier.getBytes(StandardCharsets.US_ASCII);
         final MessageDigest digest;
         try {
             digest = MessageDigest.getInstance("SHA-256");
@@ -72,7 +70,7 @@ public enum PKCE {
         digest.update(asciiCodeVerifier);
         final byte[] codeChallengeBytes = digest.digest();
         return Base64
-                .getUrlEncoder()
+                .getUrlEncoder().withoutPadding()
                 .encodeToString(codeChallengeBytes);
     }
 
