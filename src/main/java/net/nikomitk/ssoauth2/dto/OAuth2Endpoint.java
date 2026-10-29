@@ -1,6 +1,7 @@
 package net.nikomitk.ssoauth2.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.Setter;
@@ -73,7 +74,7 @@ public class OAuth2Endpoint {
             if (response.statusCode() != 200) {
                 throw new RuntimeException("Failed to fetch well-known endpoint: " + response.statusCode());
             }
-            return new ObjectMapper().readValue(response.body(), OAuth2Endpoint.class);
+            return new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).readValue(response.body(), OAuth2Endpoint.class);
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
