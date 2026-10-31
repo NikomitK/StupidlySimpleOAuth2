@@ -1,5 +1,8 @@
 package net.nikomitk.ssoauth2.exception;
 
+/**
+ * Indicates that the OAuth2Flow is not initialized yet. It should be started with OAuth2Flow.startFlow().
+ */
 @SuppressWarnings("unused")
 public class OAuth2FlowNotInitializedException extends OAuth2FlowNotReadyException {
 

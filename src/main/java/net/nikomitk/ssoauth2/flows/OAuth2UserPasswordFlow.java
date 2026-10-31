@@ -25,6 +25,17 @@ public class OAuth2UserPasswordFlow extends OAuth2Flow {
     private final String scope;
     private HttpRequest httpRequest;
 
+    /**
+     * Creates an instance of the OAuth2 <a href="https://www.rfc-editor.org/info/rfc6749/#section-4.3">Resource Owner Password Credentials flow</a>. This <a href="https://www.rfc-editor.org/info/rfc9700/#section-2.4">should not be used</a> for production purposes.
+     * It is still implemented here for testing purposes and because some OAuth2 Authorization Server implementations (e.g. <a href="https://docs.goauthentik.io/add-secure-apps/providers/oauth2/machine_to_machine/">Authentik</a>) change the security assumptions by only allowing app passwords.
+     * @param wellKnownEndpoint the well-known-endpoint of your OAuth2 provider. Usually ends with /
+     *                          .well-known/openid-configuration
+     * @param clientID          the OAuth2 clientID of your public OAuth2 client
+     * @param scope             space separated strings, which should be requested from the OAuth2 provider. Example:
+     *                         "string1 string2 string3"
+     * @param username          the username to use
+     * @param password          the password to use
+     */
     public OAuth2UserPasswordFlow(final String wellKnownEndpoint, final String clientID, final String username, final String password, final String scope) {
 
         super();

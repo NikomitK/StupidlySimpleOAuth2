@@ -8,6 +8,9 @@ import net.nikomitk.ssoauth2.exception.OAuth2FlowNotReadyException;
 
 import java.time.Instant;
 
+/**
+ * Abstract base class for all OAuth2 flows.
+ */
 @SuppressWarnings("unused")
 public abstract class OAuth2Flow {
 
@@ -15,11 +18,13 @@ public abstract class OAuth2Flow {
 
     protected OAuth2TokenResponse lastOAuth2TokenResponse;
 
+    /**
+     * Initializes common attributes like the ObjectMapper and OAuth2TokenResponse
+     */
     protected OAuth2Flow() {
 
         objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
-
 
     /**
      * Initialize this Flow, in order to enable {@link OAuth2Flow#requestAccessToken}, {@link OAuth2Flow#refreshAccessToken()} and {@link OAuth2Flow#getAccessToken()}
@@ -42,6 +47,7 @@ public abstract class OAuth2Flow {
     /**
      * Get a valid {@link OAuth2AccessToken} with an {@link Instant} describing the end of validity
      * @throws OAuth2FlowNotReadyException if the flow was not initialized with {@link OAuth2Flow#startFlow()}
+     * @return the last acquired OAuth2AccessToken
      */
     public OAuth2AccessToken getAccessToken() {
 
