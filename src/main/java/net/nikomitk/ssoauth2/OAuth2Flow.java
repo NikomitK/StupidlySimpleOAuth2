@@ -54,7 +54,7 @@ public abstract class OAuth2Flow {
         if(this.lastOAuth2TokenResponse == null) {
             throw new OAuth2FlowNotReadyException("No access token has been requested!");
         }
-        return new OAuth2AccessToken(this.lastOAuth2TokenResponse.getAccessToken(), Instant
-                .now().plusSeconds(this.lastOAuth2TokenResponse.getExpiresIn()));
+        return new OAuth2AccessToken(this.lastOAuth2TokenResponse.getAccessToken(), this.lastOAuth2TokenResponse
+                .getReceivedAt().plusSeconds(this.lastOAuth2TokenResponse.getExpiresIn()));
     }
 }
