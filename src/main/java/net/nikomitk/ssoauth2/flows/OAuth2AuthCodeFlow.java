@@ -38,20 +38,8 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
     private CompletableFuture<String> futureAccessCode;
     private String refreshToken;
     private String lastCodeVerifier;
-
-    /**
-     * Returns the last URI that was used in the OAuth2 flow.
-     *
-     * @return the last URI
-     */
-    public String getAuthUri() {
-
-        return lastUri;
-    }
-
     private String lastUri;
     private String lastRedirectUri;
-
     /**
      * Create a new Instance of the OAuth2BrowserFlow.
      *
@@ -73,8 +61,19 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
     }
 
     /**
+     * Returns the last URI that was used in the OAuth2 flow.
+     *
+     * @return the last URI
+     */
+    public String getAuthUri() {
+
+        return lastUri;
+    }
+
+    /**
      * Starts an http server on the loopback interface and a random port. To get the URL the user has to open for
      * signing in, call the {@link #getAuthUri()} method.
+     *
      * @return the instance this was called on
      */
     @Override
@@ -91,6 +90,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
     /**
      * Requests an OAuth2 access token using the previously acquired access code, as described in section 4.1.3 of
      * RFC6749.
+     *
      * @return the instance this was called on
      */
     public OAuth2AuthCodeFlow requestAccessToken() {
@@ -160,6 +160,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
             final var response = client.send(request, HttpResponse.BodyHandlers.ofString());
             OAuth2RequestException.check(response);
             this.lastOAuth2TokenResponse = objectMapper.readValue(response.body(), OAuth2TokenResponse.class);
+            this.refreshToken = lastOAuth2TokenResponse.getRefreshToken();
         } catch (final IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -219,6 +220,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
     /**
      * Starts an http server on the loopback interface and a specified port. To get the URL the user has to open for
      * signing in, call the {@link #getAuthUri()} method.
+     *
      * @param port the port to start the http server on
      * @return the instance this was called on
      */
