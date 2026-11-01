@@ -6,6 +6,7 @@ import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowInterruptedException;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowNotInitializedException;
+import net.nikomitk.ssoauth2.exception.OAuth2RequestException;
 import net.nikomitk.ssoauth2.security.PKCE;
 import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
 import net.nikomitk.ssoauth2.util.UrlBuilder;
@@ -124,6 +125,8 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
         try (final HttpClient client = HttpClient.newHttpClient()) {
 
             final HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            OAuth2RequestException.check(response);
+
             lastOAuth2TokenResponse = objectMapper.readValue(response.body(), OAuth2TokenResponse.class);
             this.refreshToken = lastOAuth2TokenResponse.getRefreshToken();
 
@@ -155,6 +158,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
 
         try (final HttpClient client = HttpClient.newHttpClient()) {
             final var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            OAuth2RequestException.check(response);
             this.lastOAuth2TokenResponse = objectMapper.readValue(response.body(), OAuth2TokenResponse.class);
         } catch (final IOException | InterruptedException e) {
             throw new RuntimeException(e);
@@ -227,6 +231,5 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
         }
         return this;
     }
-
 
 }

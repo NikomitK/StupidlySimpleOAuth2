@@ -4,6 +4,7 @@ import net.nikomitk.ssoauth2.OAuth2Flow;
 import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowNotInitializedException;
+import net.nikomitk.ssoauth2.exception.OAuth2RequestException;
 import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
 
 import java.io.IOException;
@@ -76,6 +77,7 @@ public class OAuth2UserPasswordFlow extends OAuth2Flow {
         }
         try (final HttpClient client = HttpClient.newHttpClient()) {
             final var response = client.send(this.httpRequest, HttpResponse.BodyHandlers.ofString());
+            OAuth2RequestException.check(response);
             lastOAuth2TokenResponse = objectMapper.readValue(response.body(), OAuth2TokenResponse.class);
         } catch (final IOException | InterruptedException e) {
             throw new RuntimeException(e);
