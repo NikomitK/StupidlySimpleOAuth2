@@ -1,5 +1,6 @@
 package net.nikomitk.ssoauth2.flows;
 
+import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import net.nikomitk.ssoauth2.OAuth2Flow;
 import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
@@ -18,6 +19,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -40,6 +42,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
     private String lastCodeVerifier;
     private String lastUri;
     private String lastRedirectUri;
+    private Optional<HttpServer> httpServer;
     /**
      * Create a new Instance of the OAuth2BrowserFlow.
      *
@@ -101,6 +104,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
             accessCode = futureAccessCode.get(120000, TimeUnit.MILLISECONDS);
 
         } catch (final InterruptedException | ExecutionException | TimeoutException e) {
+            stopHttpServer();
             throw new OAuth2FlowNotInitializedException();
         }
 
@@ -173,23 +177,31 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
 
         final HttpServer server = Util.createHttpServer(port);
 
-        server.createContext("/oauth2/redirect", exchange -> {
-
-            final String code = Util.getQueryParameter(exchange, "code");
-
-            if (code != null && !code.isBlank()) {
-                sendResponse(exchange, 200, "Authentication successful. You can now close this window.");
-                futureAccessCode.complete(code);
-            } else {
-                sendResponse(exchange, 500, "An error occurred. You can now close this window.");
-                futureAccessCode.completeExceptionally(new OAuth2FlowInterruptedException("No access code found in " + "the redirect URL."));
-            }
-
-            server.stop(1);
-        });
+        server.createContext("/oauth2/redirect", this::redirectExchangeHandler);
         server.start();
+        httpServer = Optional.of(server);
         lastRedirectUri = buildRedirectUri(server.getAddress());
         lastUri = buildUrl(lastRedirectUri);
+    }
+
+    private void redirectExchangeHandler(final HttpExchange exchange) throws IOException {
+
+        final String code = Util.getQueryParameter(exchange, "code");
+
+        if (code != null && !code.isBlank()) {
+            sendResponse(exchange, 200, "Authentication successful. You can now close this window.");
+            futureAccessCode.complete(code);
+        } else {
+            sendResponse(exchange, 500, "An error occurred. You can now close this window.");
+            futureAccessCode.completeExceptionally(new OAuth2FlowInterruptedException("No access code found in " + "the redirect URL."));
+        }
+
+        stopHttpServer();
+    }
+
+    private void stopHttpServer() {
+        httpServer.ifPresent(server -> server.stop(1));
+        httpServer = Optional.empty();
     }
 
     private String buildRedirectUri(final InetSocketAddress address) {
