@@ -3,7 +3,6 @@ package net.nikomitk.ssoauth2.flows;
 import net.nikomitk.ssoauth2.security.PKCE;
 import net.nikomitk.ssoauth2.util.Util;
 
-import javax.naming.OperationNotSupportedException;
 import java.io.IOException;
 
 /**
@@ -19,12 +18,11 @@ public class OAuth2BrowserFlow extends OAuth2AuthCodeFlow {
      *                          .well-known/openid-configuration
      * @param clientID          the OAuth2 clientID of your public OAuth2 client
      * @param scope             space separated strings, which should be requested from the OAuth2 provider. Example:
-     *                         "string1 string2 string3"
+     *                          "string1 string2 string3"
      * @param pkce              the {@link PKCE} instance to use for the OAuth2 flow. If it is null, the flow does
      *                          not use PKCE. This is not recommended.
      */
-    public OAuth2BrowserFlow(final String wellKnownEndpoint, final String clientID, final String scope,
-                             final PKCE pkce) {
+    public OAuth2BrowserFlow(final String wellKnownEndpoint, final String clientID, final String scope, final PKCE pkce) {
 
         super(wellKnownEndpoint, clientID, scope, pkce);
     }
@@ -41,7 +39,7 @@ public class OAuth2BrowserFlow extends OAuth2AuthCodeFlow {
         super.startFlow();
         try {
             Util.openBrowser(getAuthUri());
-        } catch (final OperationNotSupportedException | IOException e) {
+        } catch (final UnsupportedOperationException | IOException e) {
             throw new RuntimeException(e);
         }
         return this;
@@ -59,7 +57,7 @@ public class OAuth2BrowserFlow extends OAuth2AuthCodeFlow {
         super.startFlow(port);
         try {
             Util.openBrowser(getAuthUri());
-        } catch (final OperationNotSupportedException | IOException e) {
+        } catch (final UnsupportedOperationException | IOException e) {
             throw new RuntimeException(e);
         }
         return this;

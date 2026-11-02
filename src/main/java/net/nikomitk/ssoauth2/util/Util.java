@@ -3,7 +3,6 @@ package net.nikomitk.ssoauth2.util;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
-import javax.naming.OperationNotSupportedException;
 import java.awt.*;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -12,23 +11,26 @@ import java.net.URI;
 
 public class Util {
 
-    public static void openBrowser(final String url) throws OperationNotSupportedException, IOException {
+    public static void openBrowser(final String url) throws UnsupportedOperationException, IOException {
 
         final var osName = System.getProperty("os.name");
 
-        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+        if (Desktop.isDesktopSupported() && Desktop.getDesktop()
+                                                   .isSupported(Desktop.Action.BROWSE)) {
 
-            Desktop.getDesktop().browse(URI.create(url));
+            Desktop.getDesktop()
+                   .browse(URI.create(url));
         } else if (osName != null && osName.equals("Linux")) {
 
             try {
-                final var p = Runtime.getRuntime().exec(new String[]{"xdg-open", url});
+                final var p = Runtime.getRuntime()
+                                     .exec(new String[]{"xdg-open", url});
                 p.waitFor();
             } catch (final InterruptedException e) {
                 throw new RuntimeException(e);
             }
         } else {
-            throw new OperationNotSupportedException();
+            throw new UnsupportedOperationException("Can not open browser on this platform");
         }
     }
 
@@ -43,7 +45,8 @@ public class Util {
 
     public static String getQueryParameter(final HttpExchange exchange, final String parameterName) {
 
-        final String query = exchange.getRequestURI().getQuery();
+        final String query = exchange.getRequestURI()
+                                     .getQuery();
         final String[] params = query.split("&");
         String requestedParam = null;
         for (final String param : params) {
@@ -59,9 +62,11 @@ public class Util {
 
         exchange.sendResponseHeaders(responseCode, responseBody.length());
 
-        exchange.getResponseBody().write(responseBody.getBytes());
+        exchange.getResponseBody()
+                .write(responseBody.getBytes());
 
-        exchange.getResponseBody().close();
+        exchange.getResponseBody()
+                .close();
         exchange.close();
     }
 
