@@ -19,6 +19,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.security.MessageDigest;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -40,6 +41,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
     private CompletableFuture<String> futureAccessCode;
     private String refreshToken;
     private String lastCodeVerifier;
+    private String lastState;
     private String lastUri;
     private String lastRedirectUri;
     private Optional<HttpServer> httpServer;
@@ -103,9 +105,15 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
 
             accessCode = futureAccessCode.get(120000, TimeUnit.MILLISECONDS);
 
-        } catch (final InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (final InterruptedException | TimeoutException e) {
             stopHttpServer();
             throw new OAuth2FlowNotInitializedException();
+        } catch (ExecutionException e) {
+            if(e.getCause() instanceof OAuth2FlowInterruptedException ex) {
+                throw ex;
+            } else {
+                throw new RuntimeException(e);
+            }
         }
 
         final HttpFormBodyBuilder bodyBuilder = HttpFormBodyBuilder.newBuilder()
@@ -177,18 +185,22 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
 
         final HttpServer server = Util.createHttpServer(port);
 
-        server.createContext("/oauth2/redirect", this::redirectExchangeHandler);
-        server.start();
-        httpServer = Optional.of(server);
         lastRedirectUri = buildRedirectUri(server.getAddress());
         lastUri = buildUrl(lastRedirectUri);
+        server.createContext("/oauth2/redirect", this::redirectExchangeHandler);
+        httpServer = Optional.of(server);
+        server.start();
     }
 
     private void redirectExchangeHandler(final HttpExchange exchange) throws IOException {
 
         final String code = Util.getQueryParameter(exchange, "code");
+        final String state = Util.getQueryParameter(exchange, "state");
 
-        if (code != null && !code.isBlank()) {
+        if(state == null || !MessageDigest.isEqual(lastState.getBytes(), state.getBytes())) {
+            sendResponse(exchange, 400, "State mismatch. This might be a CSRF attack. You can now close this window.");
+            return;
+        } else if (code != null && !code.isBlank()) {
             sendResponse(exchange, 200, "Authentication successful. You can now close this window.");
             futureAccessCode.complete(code);
         } else {
@@ -197,10 +209,11 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
         }
 
         stopHttpServer();
+        lastState = null;
     }
 
     private void stopHttpServer() {
-        httpServer.ifPresent(server -> server.stop(1));
+        httpServer.ifPresent(server -> server.stop(0));
         httpServer = Optional.empty();
     }
 
@@ -212,11 +225,14 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
 
     private String buildUrl(final String redirectUri) {
 
+        lastState = Util.generateRandomString(32);
+
         final UrlBuilder builder = UrlBuilder.withBasePath(endpoint.getAuthorizationEndpoint())
                                              .addQueryParameter("response_type", "code")
                                              .addQueryParameter("client_id", this.clientID)
                                              .addQueryParameter("redirect_uri", redirectUri)
-                                             .addQueryParameter("scope", this.scope);
+                                             .addQueryParameter("scope", this.scope)
+                                             .addQueryParameter("state", lastState);
 
         if (pkce != null) {
 

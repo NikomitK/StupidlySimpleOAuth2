@@ -52,10 +52,19 @@ public class Util {
 
         final String query = exchange.getRequestURI()
                                      .getQuery();
+        if(query == null) {
+            return null;
+        }
         final String[] params = query.split("&");
         String requestedParam = null;
         for (final String param : params) {
             if (param.startsWith(parameterName + "=")) {
+                final String[] parts = param.split("=");
+                if(parts.length < 2) {
+                    return "";
+                } else if(parts.length > 2) {
+                    return parts[1];
+                }
                 requestedParam = param.split("=")[1];
                 break;
             }
