@@ -1,66 +1,69 @@
-# RFC 9700 (OAuth 2.0 Security BCP) 
+# RFC 9700 (OAuth 2.0 Security BCP)
+
+Legend: `[x]` met · `[~]` partially met · `[ ]` not met · `[-]` not applicable / out of scope (checked against code on `develop`)
+
+Files: `AC` = [OAuth2AuthCodeFlow.java](../src/main/java/net/nikomitk/ssoauth2/flows/OAuth2AuthCodeFlow.java), `EP` = [OAuth2Endpoint.java](../src/main/java/net/nikomitk/ssoauth2/dto/OAuth2Endpoint.java)
 
 ## Redirect-based flow protection (§2.1)
-- [ ] Use only **exact, pre-registered redirect URIs** (compare by simple string comparison, RFC 3986 §6.2.1); only the **port** may vary for loopback redirects (§2.1, §4.1.3)
-- [ ] Client **MUST NOT expose open redirectors** (e.g. the loopback/redirect handler must never forward the browser to a URL taken from a query parameter) (§2.1, §4.11.1)
-- [ ] **CSRF protection is MUST** (§2.1, §4.7.1)
-  - [ ] Use PKCE for CSRF protection **only if** the AS is known to support PKCE (check metadata `code_challenge_methods_supported` or configuration), **otherwise `state` MUST be used**
-  - [ ] Simplest compliant approach: always send `state` **and** PKCE; one-time-use `state`, securely bound to the user agent/session
-  - [ ] If `state` carries application data and integrity matters, protect it against tampering/swapping (sign/encrypt or bind to session)
-  - [ ] **Invalidate `state` after first use** at the redirect endpoint (SHOULD, §4.2.4)
-- [ ] **Mix-up defense is REQUIRED when the client can talk to more than one AS** (§2.1, §4.4)
-  - [ ] Preferred (SHOULD): validate the **`iss` authorization response parameter** per RFC 9207 (compare to the stored issuer, **abort on mismatch**); also handle servers that don't send `iss` per the AS metadata flag `authorization_response_iss_parameter_supported`
-  - [ ] **Store, per authorization request, the issuer the request was sent to and bind it to the user agent / session** (MUST for both defenses)
-  - [ ] Fallback (MAY, SHOULD only if nothing else): **distinct redirect URI per issuer** and verify the response arrived on the matching one (see RFC 8252 §8.10)
-  - [ ] Don't rely on only storing the AS URL; issuer must identify the (authorization endpoint, token endpoint) tuple
-- [ ] Authorization responses are never transmitted over unencrypted channels; **`http` redirect URIs only for loopback** (§2.6)
+- [x] Only one fixed redirect URI is used; exact matching is up to the AS (port is the only variable part)
+- [x] No open redirector in the loopback handler
+- [ ] **CSRF protection (MUST)** – no `state`; PKCE is optional
+  - [ ] PKCE-as-CSRF only if AS support is verified – `EP.codeChallengeMethodsSupported` is parsed but never consulted
+  - [ ] Always send `state` and PKCE
+  - [-] `state` carrying application data – no `state`
+  - [ ] Invalidate `state` after first use
+- [ ] **Mix-up defense** (needed when talking to several AS)
+  - [ ] `iss` response parameter (RFC 9207) validation – not implemented; `authorization_response_iss_parameter_supported` not parsed
+  - [~] Issuer stored per authorization request – `OAuth2Endpoint.issuer` is held by the flow instance (one AS per flow), but not bound/compared to the response
+  - [~] Distinct redirect URI per issuer – each flow has its own random port; not an explicit check
+  - [x] Issuer identifies the endpoint tuple – the flow holds the full `OAuth2Endpoint`
+- [~] `http` only for loopback redirects – redirect is loopback `http` (fine), but **no check that authorization/token/well-known endpoints use `https`**
 
 ## Authorization code grant (§2.1.1)
-- [ ] **Public clients MUST use PKCE (RFC 7636)** (§2.1.1, §4.5.3.1)
-- [ ] PKCE challenge **MUST be transaction-specific** (fresh `code_verifier` per authorization request) and bound to the client/user agent that started the transaction
-- [ ] Use **`code_challenge_method=S256`** (SHOULD; never `plain` unless the AS leaves no option)
-- [ ] Send `code_verifier` in the token request
-- [ ] **Detect PKCE support of the AS** before relying on it (metadata `code_challenge_methods_supported`, RFC 8414, or configuration); refuse/warn if unsupported
-- [ ] Don't use the OIDC `nonce` as a substitute for PKCE (doesn't protect public clients) (§4.5.3.2)
-- [ ] If OIDC is supported: validate `nonce` in the ID token (from the token endpoint) and don't use tokens before it's checked (§4.5.3.2)
+- [~] **Public clients MUST use PKCE** – supported, but opt-out via `null` (Javadoc: "not recommended")
+- [x] PKCE challenge is transaction-specific – new verifier on each `buildUrl` (`AC:223`)
+- [~] `S256` – supported and recommended in README; `PLAIN` is allowed and not rejected
+- [x] `code_verifier` sent in the token request
+- [ ] Detect PKCE support of the AS before relying on it
+- [x] OIDC `nonce` is not used as a PKCE substitute
+- [-] Validate `nonce` in ID token – no ID token handling at all (library doesn't parse ID tokens)
 
-## Implicit grant & other token-in-redirect flows (§2.1.2)
-- [ ] **Do not implement** `response_type=token` (SHOULD NOT) – use `code`
+## Implicit grant (§2.1.2)
+- [x] `response_type=token` not implemented
 
 ## Token replay prevention (§2.2)
-- [ ] **Refresh tokens for public clients MUST be sender-constrained OR use refresh token rotation** (§2.2.2, §4.14.2)
-  - [ ] Rotation: **replace the stored refresh token with the new one returned by every refresh** (RFC 6749 §6 MUST), and make this **atomic / thread-safe** (concurrent refreshes must not use an already-rotated token, and the new token must be persisted before the old is discarded/the access token handed out)
-  - [ ] Handle `invalid_grant` on refresh (rotation breach detected / token revoked) → drop stored tokens and require re-authorization
-  - [ ] (Optional/Future) DPoP (RFC 9449) support for sender-constraining access and refresh tokens (§2.2.1 SHOULD for AS/RS; DPoP fits public clients)
-  - [ ] (Optional) mTLS (RFC 8705) is not realistic for typical public clients
+- [~] **Refresh tokens: rotation** – a new refresh token replaces the old one (`AC:167`); but when the AS returns no new token the stored one becomes `null` (breaks non-rotating servers)
+  - [ ] Atomic / thread-safe refresh – `refreshAccessToken()` and the fields are unsynchronized; concurrent refreshes can use an already-rotated token
+  - [ ] `invalid_grant` on refresh → drop tokens / require re-authorization – not handled
+  - [ ] (Optional) DPoP (RFC 9449)
+  - [-] (Optional) mTLS
 
 ## Access token privilege restriction (§2.3)
-- [ ] Request **minimal scope** necessary (SHOULD)
-- [ ] (Optional) Support Resource Indicators (`resource` parameter, RFC 8707) for audience restriction; (RFC 9396 `authorization_details` optional)
-- [ ] Only send tokens to the resource servers they were meant for (don't send an access token to arbitrary URLs; callers' responsibility, document it) (§4.9.1)
+- [x] Minimal scope – caller-controlled
+- [ ] (Optional) Resource indicators (RFC 8707)
+- [ ] Documentation that tokens must only be sent to their intended resource servers
 
 ## Grants that must not be used (§2.4)
-- [ ] **Do NOT implement the Resource Owner Password Credentials grant** (MUST NOT be used)
+- [ ] **ROPC grant is implemented** (`OAuth2UserPasswordFlow`, README lists it) – violates "MUST NOT be used". Only mitigated by a Javadoc/README warning; consider removing or marking `@Deprecated`
 
 ## Client authentication (§2.5)
-- [ ] Public clients don't authenticate; do **not** embed shared secrets as authentication. (Confidential-client methods like `private_key_jwt`/mTLS are out of scope)
+- [x] No client authentication, no embedded secrets
 
 ## Metadata & configuration (§2.6)
-- [ ] **Use OAuth Authorization Server Metadata (RFC 8414)** to configure endpoints when available (RECOMMENDED): `issuer`, `authorization_endpoint`, `token_endpoint`, `code_challenge_methods_supported`, `authorization_response_iss_parameter_supported`
-  - [ ] Validate the `issuer` in the metadata document equals the URL it was retrieved from (RFC 8414)
-  - [ ] Support manual endpoint configuration as fallback
-- [ ] **Use TLS** (BCP 195: TLS ≥ 1.2, no 1.0/1.1) for all connections to AS and RS; validate certificates (RECOMMENDED end-to-end TLS to the RS)
-- [ ] Reject `http` for authorization, token, and metadata endpoints (loopback redirect is the only exception)
+- [x] Uses AS metadata (well-known endpoint) for `authorization_endpoint`, `token_endpoint`, `issuer`, `code_challenge_methods_supported`
+  - [ ] `issuer` in the metadata is not validated against the URL it was fetched from
+  - [ ] No manual endpoint configuration – `OAuth2Endpoint` can only be created via `queryWellKnownEndpoint`
+- [~] TLS: JVM defaults (certificate validation on), but no enforced minimum protocol and no `https` requirement
+- [ ] Reject `http` for authorization, token and metadata endpoints
 
 ## Attack-specific client requirements (§4)
-- [ ] §4.1.3: Never use pattern/wildcard redirect URIs; exact matching only
-- [ ] §4.2.4: Pages rendered at the redirect endpoint (loopback server response page) **SHOULD NOT include third-party resources or external links**; set `Referrer-Policy: no-referrer`; invalidate `state` after use
-- [ ] §4.3.2: **Clients MUST NOT pass access tokens in a URI query parameter** (RFC 6750 §2.3) – use `Authorization: Bearer` header only
-- [ ] §4.4.2: Mix-up countermeasures (see above)
-- [ ] §4.5: Authorization code injection countermeasure = PKCE (see above)
-- [ ] §4.7.1: CSRF countermeasures (see above)
-- [ ] §4.8: PKCE downgrade (AS side), but client must **always send `code_challenge`** and never make PKCE optional / not detect AS lacking PKCE support
-- [ ] §4.11.1: No open redirectors in the client's redirect handler
-- [ ] §4.14: Refresh token protection – rotation handling, secure storage, tolerate AS-side inactivity expiry / revocation (password change, logout) → surface "re-authentication required"
-- [ ] §4.9.3 (clients): Treat access tokens as sensitive secrets – **do not log them, do not store/transmit in plaintext** (secure storage SPI, no tokens in `toString`/logs/exception messages)
-
+- [x] §4.1.3 No wildcard/pattern redirect URIs
+- [~] §4.2.4 Redirect page: no third-party resources or links ✔, but no `Referrer-Policy: no-referrer` header (`Util.sendResponse` sends no headers); no `state` to invalidate
+- [x] §4.3.2 Library never puts access tokens in URIs
+- [~] §4.4.2 Mix-up – see above
+- [~] §4.5 Code injection – PKCE only if enabled
+- [ ] §4.7.1 CSRF – see above
+- [~] §4.8 PKCE downgrade – `code_challenge` is sent when `pkce != null`, but PKCE can be disabled and AS support isn't detected
+- [x] §4.11.1 No open redirectors
+- [~] §4.14 Refresh token protection – tokens held in memory only; no handling for server-side expiry/revocation (`invalid_grant`)
+- [~] §4.9.3 Tokens as secrets – not logged and not persisted, but `OAuth2AccessToken` is a `record` whose generated `toString()` prints the token; `OAuth2RequestException` embeds the raw response body in its message
