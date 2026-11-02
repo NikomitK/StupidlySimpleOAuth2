@@ -8,8 +8,13 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.security.SecureRandom;
+import java.util.Base64;
+import java.util.function.Function;
 
 public class Util {
+
+    private static final SecureRandom secureRandom = new SecureRandom();
 
     public static void openBrowser(final String url) throws UnsupportedOperationException, IOException {
 
@@ -70,4 +75,15 @@ public class Util {
         exchange.close();
     }
 
+    public static String generateRandomString(final int byteCount, Function<byte[], String> encoder) {
+
+        final byte[] bytes = new byte[byteCount];
+        secureRandom.nextBytes(bytes);
+        return encoder.apply(bytes);
+    }
+
+    public static String generateRandomString(final int byteCount) {
+
+        return generateRandomString(byteCount, Base64.getUrlEncoder().withoutPadding()::encodeToString);
+    }
 }
