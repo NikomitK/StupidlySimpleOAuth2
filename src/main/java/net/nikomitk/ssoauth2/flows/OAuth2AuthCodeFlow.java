@@ -36,6 +36,12 @@ import static net.nikomitk.ssoauth2.util.Util.sendResponse;
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public class OAuth2AuthCodeFlow extends OAuth2Flow {
 
+    public record Configuration(OAuth2Endpoint endpoint, String clientID, String scope, PKCE pkce) {
+        public Configuration(final String wellKnownEndpoint, final String clientID, final String scope, final PKCE pkce) {
+            this(OAuth2Endpoint.queryWellKnownEndpoint(wellKnownEndpoint), clientID, scope, pkce);
+        }
+    }
+    
     public sealed interface AuthCodeFlowState extends OAuth2FlowState {
         record Initial() implements AuthCodeFlowState {}
         record AwaitingAuthCode(String accessCode) implements AuthCodeFlowState {}
@@ -45,10 +51,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
         record RefreshTokenPresent(String refreshToken) implements AuthCodeFlowState {}
     }
 
-    private final PKCE pkce;
-    private final OAuth2Endpoint endpoint;
-    private final String clientID;
-    private final String scope;
+    private final Configuration configuration;
     private volatile CompletableFuture<String> futureAccessCode;
     private volatile String refreshToken;
     private String lastCodeVerifier;
@@ -56,6 +59,11 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
     private volatile String lastUri;
     private volatile String lastRedirectUri;
     private volatile Optional<HttpServer> httpServer = Optional.empty();
+
+    public OAuth2AuthCodeFlow(final Configuration configuration) {
+        this.configuration = configuration;
+    }
+
     /**
      * Create a new Instance of the OAuth2BrowserFlow.
      *
@@ -69,10 +77,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
      */
     public OAuth2AuthCodeFlow(final String wellKnownEndpoint, final String clientID, final String scope, final PKCE pkce) {
 
-        this.endpoint = OAuth2Endpoint.queryWellKnownEndpoint(wellKnownEndpoint);
-        this.clientID = clientID;
-        this.scope = scope;
-        this.pkce = pkce;
+        this.configuration = new Configuration(wellKnownEndpoint, clientID, scope, pkce);
         super();
     }
 
