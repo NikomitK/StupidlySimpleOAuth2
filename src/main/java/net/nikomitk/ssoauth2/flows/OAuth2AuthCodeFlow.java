@@ -263,4 +263,26 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
         return this;
     }
 
+    enum State {
+        INITIAL {
+            State requestAccessCode() {
+                return State.ACCESS_CODE;
+            }
+        },
+        ACCESS_CODE {
+            State requestAccessToken() {
+                return State.ACCESS_TOKEN;
+            }
+        },
+        ACCESS_TOKEN {
+            State requestAccessCode() {
+                return ACCESS_CODE;
+            }
+        },
+        REFRESH_TOKEN {
+            State refreshToken() {
+                return this;
+            }
+        }
+    }
 }
