@@ -16,7 +16,7 @@ public abstract class OAuth2Flow {
 
     protected final ObjectMapper objectMapper;
 
-    protected OAuth2TokenResponse lastOAuth2TokenResponse;
+    protected volatile OAuth2TokenResponse lastOAuth2TokenResponse;
 
     /**
      * Initializes common attributes like the ObjectMapper and OAuth2TokenResponse

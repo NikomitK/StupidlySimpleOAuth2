@@ -39,13 +39,13 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
     private final OAuth2Endpoint endpoint;
     private final String clientID;
     private final String scope;
-    private CompletableFuture<String> futureAccessCode;
-    private String refreshToken;
+    private volatile CompletableFuture<String> futureAccessCode;
+    private volatile String refreshToken;
     private String lastCodeVerifier;
-    private AtomicReference<String> lastState;
-    private String lastUri;
-    private String lastRedirectUri;
-    private Optional<HttpServer> httpServer;
+    private volatile String lastState;
+    private volatile String lastUri;
+    private volatile String lastRedirectUri;
+    private volatile Optional<HttpServer> httpServer = Optional.empty();
     /**
      * Create a new Instance of the OAuth2BrowserFlow.
      *
@@ -152,6 +152,8 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
 
     public OAuth2AuthCodeFlow refreshAccessToken() {
 
+        synchronized(this) {
+
         if (this.refreshToken == null) {
             throw new OAuth2FlowNotInitializedException();
         }
@@ -177,6 +179,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
         } catch (final IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }
         return this;
     }
 
@@ -198,7 +201,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
         final String code = Util.getQueryParameter(exchange, "code");
         final String state = Util.getQueryParameter(exchange, "state");
 
-        if(state == null || !MessageDigest.isEqual(lastState.get().getBytes(), state.getBytes())) {
+        if(state == null || !MessageDigest.isEqual(lastState.getBytes(), state.getBytes())) {
             sendResponse(exchange, 400, "State mismatch. This might be a CSRF attack. You can now close this window.");
             return;
         } else if (code != null && !code.isBlank()) {
@@ -226,14 +229,14 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
 
     private String buildUrl(final String redirectUri) {
 
-        lastState = new AtomicReference<>(Util.generateRandomString(32));
+        lastState = Util.generateRandomString(32);
 
         final UrlBuilder builder = UrlBuilder.withBasePath(endpoint.getAuthorizationEndpoint())
                                              .addQueryParameter("response_type", "code")
                                              .addQueryParameter("client_id", this.clientID)
                                              .addQueryParameter("redirect_uri", redirectUri)
                                              .addQueryParameter("scope", this.scope)
-                                             .addQueryParameter("state", lastState.get());
+                                             .addQueryParameter("state", lastState);
 
         if (pkce != null) {
 
