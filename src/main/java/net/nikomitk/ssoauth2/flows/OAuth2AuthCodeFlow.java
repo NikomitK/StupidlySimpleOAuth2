@@ -25,6 +25,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static net.nikomitk.ssoauth2.util.Util.sendResponse;
 
@@ -41,7 +42,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
     private CompletableFuture<String> futureAccessCode;
     private String refreshToken;
     private String lastCodeVerifier;
-    private String lastState;
+    private AtomicReference<String> lastState;
     private String lastUri;
     private String lastRedirectUri;
     private Optional<HttpServer> httpServer;
@@ -108,8 +109,8 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
         } catch (final InterruptedException | TimeoutException e) {
             stopHttpServer();
             throw new OAuth2FlowNotInitializedException();
-        } catch (ExecutionException e) {
-            if(e.getCause() instanceof OAuth2FlowInterruptedException ex) {
+        } catch (final ExecutionException e) {
+            if(e.getCause() instanceof final OAuth2FlowInterruptedException ex) {
                 throw ex;
             } else {
                 throw new RuntimeException(e);
@@ -197,7 +198,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
         final String code = Util.getQueryParameter(exchange, "code");
         final String state = Util.getQueryParameter(exchange, "state");
 
-        if(state == null || !MessageDigest.isEqual(lastState.getBytes(), state.getBytes())) {
+        if(state == null || !MessageDigest.isEqual(lastState.get().getBytes(), state.getBytes())) {
             sendResponse(exchange, 400, "State mismatch. This might be a CSRF attack. You can now close this window.");
             return;
         } else if (code != null && !code.isBlank()) {
@@ -225,14 +226,14 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
 
     private String buildUrl(final String redirectUri) {
 
-        lastState = Util.generateRandomString(32);
+        lastState = new AtomicReference<>(Util.generateRandomString(32));
 
         final UrlBuilder builder = UrlBuilder.withBasePath(endpoint.getAuthorizationEndpoint())
                                              .addQueryParameter("response_type", "code")
                                              .addQueryParameter("client_id", this.clientID)
                                              .addQueryParameter("redirect_uri", redirectUri)
                                              .addQueryParameter("scope", this.scope)
-                                             .addQueryParameter("state", lastState);
+                                             .addQueryParameter("state", lastState.get());
 
         if (pkce != null) {
 

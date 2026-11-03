@@ -52,7 +52,7 @@ public class Util {
 
         final String query = exchange.getRequestURI()
                                      .getQuery();
-        if(query == null) {
+        if (query == null) {
             return null;
         }
         final String[] params = query.split("&");
@@ -60,9 +60,9 @@ public class Util {
         for (final String param : params) {
             if (param.startsWith(parameterName + "=")) {
                 final String[] parts = param.split("=");
-                if(parts.length < 2) {
+                if (parts.length < 2) {
                     return "";
-                } else if(parts.length > 2) {
+                } else if (parts.length > 2) {
                     return parts[1];
                 }
                 requestedParam = param.split("=")[1];
@@ -84,15 +84,17 @@ public class Util {
         exchange.close();
     }
 
-    public static String generateRandomString(final int byteCount, Function<byte[], String> encoder) {
+    public static String generateRandomString(final int byteCount) {
+
+        return generateRandomString(byteCount, Base64.getUrlEncoder()
+                                                     .withoutPadding()::encodeToString);
+    }
+
+    public static String generateRandomString(final int byteCount, final Function<byte[], String> encoder) {
 
         final byte[] bytes = new byte[byteCount];
         secureRandom.nextBytes(bytes);
         return encoder.apply(bytes);
     }
 
-    public static String generateRandomString(final int byteCount) {
-
-        return generateRandomString(byteCount, Base64.getUrlEncoder().withoutPadding()::encodeToString);
-    }
 }
