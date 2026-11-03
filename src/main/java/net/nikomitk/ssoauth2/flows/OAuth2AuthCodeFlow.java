@@ -3,6 +3,7 @@ package net.nikomitk.ssoauth2.flows;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import net.nikomitk.ssoauth2.OAuth2Flow;
+import net.nikomitk.ssoauth2.OAuth2FlowState;
 import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowInterruptedException;
@@ -34,6 +35,15 @@ import static net.nikomitk.ssoauth2.util.Util.sendResponse;
  */
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public class OAuth2AuthCodeFlow extends OAuth2Flow {
+
+    public sealed interface AuthCodeFlowState extends OAuth2FlowState {
+        record Initial() implements AuthCodeFlowState {}
+        record AwaitingAuthCode(String accessCode) implements AuthCodeFlowState {}
+        record AuthCodePresent(String refreshToken) implements AuthCodeFlowState {}
+        record AwaitingAccessToken(String accessToken) implements AuthCodeFlowState {}
+        record AccessTokenPresent(String refreshToken) implements AuthCodeFlowState {}
+        record RefreshTokenPresent(String refreshToken) implements AuthCodeFlowState {}
+    }
 
     private final PKCE pkce;
     private final OAuth2Endpoint endpoint;
