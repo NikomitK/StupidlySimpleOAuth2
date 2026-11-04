@@ -3,6 +3,7 @@ package net.nikomitk.ssoauth2.flows;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import lombok.Getter;
 import lombok.NonNull;
 import net.nikomitk.ssoauth2.OAuth2Flow;
 import net.nikomitk.ssoauth2.OAuth2FlowState;
@@ -13,6 +14,7 @@ import net.nikomitk.ssoauth2.exception.OAuth2FlowWrongStateException;
 import net.nikomitk.ssoauth2.exception.OAuth2RequestException;
 import net.nikomitk.ssoauth2.security.PKCE;
 import net.nikomitk.ssoauth2.states.AuthorizedState;
+import net.nikomitk.ssoauth2.states.ClosableState;
 import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
 import net.nikomitk.ssoauth2.util.UrlBuilder;
 import net.nikomitk.ssoauth2.util.Util;
@@ -24,6 +26,10 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.MessageDigest;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static net.nikomitk.ssoauth2.util.Util.sendResponse;
 
@@ -46,8 +52,50 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
 
         record Initial() implements AuthCodeFlowState {}
 
-        record AwaitingAuthCode(HttpServer server, String redirectUri, String stateParam, String codeVerifier,
-                String userUri) implements AuthCodeFlowState {}
+        final class AwaitingAuthCode implements AuthCodeFlowState, ClosableState {
+
+            private final HttpServer server;
+            @Getter
+            private final String redirectUri;
+            @Getter
+            private final String stateParam;
+            @Getter
+            private final String codeVerifier;
+            @Getter
+            private final String userUri;
+
+            private final AtomicBoolean closed = new AtomicBoolean(false);
+            private volatile ScheduledFuture<?> timeout;
+            private final int timeoutSeconds;
+
+            AwaitingAuthCode(HttpServer server, String redirectUri, String stateParam, String codeVerifier, String userUri, int timeoutSeconds) {
+
+                this.server = server;
+                this.redirectUri = redirectUri;
+                this.stateParam = stateParam;
+                this.codeVerifier = codeVerifier;
+                this.userUri = userUri;
+                this.timeoutSeconds = timeoutSeconds;
+            }
+
+            void scheduleTimeout(ScheduledExecutorService scheduler, Runnable runnable) {
+
+                timeout = scheduler.schedule(runnable, timeoutSeconds, TimeUnit.SECONDS);
+            }
+
+            @Override
+            public void close() {
+
+                if (closed.compareAndSet(false, true)) {
+                    final var t = timeout;
+                    if (t != null)
+                        t.cancel(false);
+                    server.stop(0);
+                }
+            }
+
+
+        }
 
         record AuthCodePresent(String authCode, String redirectUri, String codeVerifier) implements AuthCodeFlowState {}
 
@@ -80,13 +128,11 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
     }
 
     private final Configuration configuration;
-    private volatile AuthCodeFlowState state;
-    private final Object lock = new Object();
 
     public OAuth2AuthCodeFlow(final Configuration configuration) {
 
         this.configuration = configuration;
-        this.state = new AuthCodeFlowState.Initial();
+        transitionTo(new AuthCodeFlowState.Initial());
     }
 
     /**
@@ -114,11 +160,11 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
     public String getAuthUri() {
 
         synchronized (lock) {
-            if (state instanceof AuthCodeFlowState.AwaitingAuthCode awaitingAuthCode) {
-                return awaitingAuthCode.userUri();
+            if (getState() instanceof AuthCodeFlowState.AwaitingAuthCode awaitingAuthCode) {
+                return awaitingAuthCode.getUserUri();
             } else {
-                throw new OAuth2FlowWrongStateException(state.getClass()
-                                                             .getSimpleName(), new String[]{"AwaitingAuthCode"});
+                throw new OAuth2FlowWrongStateException(getState().getClass()
+                                                                  .getSimpleName(), new String[]{"AwaitingAuthCode"});
             }
         }
     }
@@ -144,7 +190,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
     public OAuth2AuthCodeFlow requestAccessToken() {
 
         synchronized (lock) {
-            if (state instanceof AuthCodeFlowState.AuthCodePresent authCodePresent) {
+            if (getState() instanceof AuthCodeFlowState.AuthCodePresent authCodePresent) {
 
                 final String body = HttpFormBodyBuilder.newBuilder()
                                                        .addFormData("grant_type", "authorization_code")
@@ -166,19 +212,19 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
                     final OAuth2TokenResponse tokenResponse = requestToken(request, configuration, objectMapper);
 
                     if (tokenResponse.getRefreshToken() != null) {
-                        state = new AuthCodeFlowState.RefreshTokenPresent(tokenResponse.getRefreshToken(), new OAuth2AccessToken(tokenResponse));
+                        transitionTo(new AuthCodeFlowState.RefreshTokenPresent(tokenResponse.getRefreshToken(), new OAuth2AccessToken(tokenResponse)));
                     } else {
-                        state = new AuthCodeFlowState.AccessTokenPresent(new OAuth2AccessToken(tokenResponse));
+                        transitionTo(new AuthCodeFlowState.AccessTokenPresent(new OAuth2AccessToken(tokenResponse)));
                     }
 
                     return this;
                 } catch (final IOException | InterruptedException e) {
-                    state = new AuthCodeFlowState.Initial();
+                    transitionTo(new AuthCodeFlowState.Initial());
                     throw new RuntimeException(e);
                 }
             } else {
-                throw new OAuth2FlowWrongStateException(state.getClass()
-                                                             .getSimpleName(), new String[]{"AuthCodePresent"});
+                throw new OAuth2FlowWrongStateException(getState().getClass()
+                                                                  .getSimpleName(), new String[]{"AuthCodePresent"});
             }
         }
     }
@@ -186,7 +232,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
     public OAuth2AuthCodeFlow refreshAccessToken() {
 
         synchronized (lock) {
-            if (state instanceof AuthCodeFlowState.RefreshTokenPresent refreshTokenPresent) {
+            if (getState() instanceof AuthCodeFlowState.RefreshTokenPresent refreshTokenPresent) {
 
                 final HttpRequest request = prepareRefreshRequest(refreshTokenPresent, configuration);
                 try {
@@ -197,7 +243,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
                     if (refreshToken == null) {
                         refreshToken = refreshTokenPresent.refreshToken();
                     }
-                    state = new AuthCodeFlowState.RefreshTokenPresent(refreshToken, new OAuth2AccessToken(tokenResponse));
+                    transitionTo(new AuthCodeFlowState.RefreshTokenPresent(refreshToken, new OAuth2AccessToken(tokenResponse)));
 
                 } catch (final IOException | InterruptedException e) {
                     throw new RuntimeException(e);
@@ -205,8 +251,8 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
 
 
             } else {
-                throw new OAuth2FlowWrongStateException(state.getClass()
-                                                             .getSimpleName(), new String[]{"RefreshTokenPresent"});
+                throw new OAuth2FlowWrongStateException(getState().getClass()
+                                                                  .getSimpleName(), new String[]{"RefreshTokenPresent"});
             }
         }
         return this;
@@ -240,24 +286,23 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
     private void redirectExchangeHandler(final HttpExchange exchange) throws IOException {
 
         synchronized (lock) {
-            if (state instanceof AuthCodeFlowState.AwaitingAuthCode awaitingAuthCode) {
+            if (getState() instanceof AuthCodeFlowState.AwaitingAuthCode awaitingAuthCode) {
 
                 final String code = Util.getQueryParameter(exchange, "code");
                 final String stateParam = Util.getQueryParameter(exchange, "state");
 
-                if (stateParam == null || !MessageDigest.isEqual(awaitingAuthCode.stateParam()
+                if (stateParam == null || !MessageDigest.isEqual(awaitingAuthCode.getStateParam()
                                                                                  .getBytes(), stateParam.getBytes())) {
                     sendResponse(exchange, 400, "State mismatch. This might be a CSRF attack. You can now close this window.");
                     return;
                 } else if (code != null && !code.isBlank()) {
                     sendResponse(exchange, 200, "Authentication successful. You can now close this window.");
-                    state = new AuthCodeFlowState.AuthCodePresent(code, awaitingAuthCode.redirectUri(), awaitingAuthCode.codeVerifier());
+                    transitionTo(new AuthCodeFlowState.AuthCodePresent(code, awaitingAuthCode.getRedirectUri(), awaitingAuthCode.getCodeVerifier()));
                 } else {
                     sendResponse(exchange, 500, "An error occurred. You can now close this window.");
-                    state = new AuthCodeFlowState.Initial();
+                    transitionTo(new AuthCodeFlowState.Initial());
                 }
-                awaitingAuthCode.server()
-                                .stop(0);
+                awaitingAuthCode.close();
 
             } else {
                 sendResponse(exchange, 500, "The current state is not AwaitingAuthCode. You can now close this window.");
@@ -300,9 +345,9 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
 
         synchronized (lock) {
 
-            if (!(state instanceof AuthCodeFlowState.Initial)) {
-                throw new OAuth2FlowWrongStateException(state.getClass()
-                                                             .getSimpleName(), new String[]{"Initial"});
+            if (!(getState() instanceof AuthCodeFlowState.Initial)) {
+                throw new OAuth2FlowWrongStateException(getState().getClass()
+                                                                  .getSimpleName(), new String[]{"Initial"});
             }
 
             final HttpServer server;
@@ -318,7 +363,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
             var stateParam = Util.generateRandomString(32);
             var userUri = buildUrl(redirectUri, codeVerifier, stateParam);
             server.createContext("/oauth2/redirect", this::redirectExchangeHandler);
-            state = new AuthCodeFlowState.AwaitingAuthCode(server, redirectUri, stateParam, codeVerifier, userUri);
+            transitionTo(new AuthCodeFlowState.AwaitingAuthCode(server, redirectUri, stateParam, codeVerifier, userUri, 120));
             server.start();
 
             return this;
@@ -329,11 +374,11 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
     public OAuth2AccessToken getAccessToken() {
 
         synchronized (lock) {
-            if (state instanceof AuthorizedState authorizedState) {
+            if (getState() instanceof AuthorizedState authorizedState) {
                 return authorizedState.getAccessToken();
             } else {
-                throw new OAuth2FlowWrongStateException(state.getClass()
-                                                             .getSimpleName(), new String[]{"AuthorizedState"});
+                throw new OAuth2FlowWrongStateException(getState().getClass()
+                                                                  .getSimpleName(), new String[]{"AuthorizedState"});
             }
         }
     }

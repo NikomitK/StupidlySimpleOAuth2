@@ -5,8 +5,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowNotReadyException;
+import net.nikomitk.ssoauth2.exception.OAuth2FlowWrongStateException;
+import net.nikomitk.ssoauth2.states.ClosableState;
+import net.nikomitk.ssoauth2.states.StartableState;
 
 import java.time.Instant;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * Abstract base class for all OAuth2 flows.
@@ -15,6 +20,9 @@ import java.time.Instant;
 public abstract class OAuth2Flow {
 
     protected final ObjectMapper objectMapper;
+    private volatile OAuth2FlowState state;
+    protected final Object lock = new Object();
+    protected static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     protected volatile OAuth2TokenResponse lastOAuth2TokenResponse;
 
@@ -57,6 +65,32 @@ public abstract class OAuth2Flow {
         return new OAuth2AccessToken(this.lastOAuth2TokenResponse.getAccessToken(), this.lastOAuth2TokenResponse
                                                                                                                 .getReceivedAt()
                                                                                                                 .plusSeconds(this.lastOAuth2TokenResponse.getExpiresIn()));
+    }
+
+
+    protected void transitionTo(OAuth2FlowState newState) {
+
+        OAuth2FlowState previousState = state;
+        state = newState;
+        if (previousState instanceof ClosableState closableState) {
+            closableState.close();
+        }
+        if (newState instanceof StartableState startableState) {
+            startableState.start();
+        }
+    }
+
+    protected OAuth2FlowState getState() {
+
+        return state;
+    }
+
+    protected void checkState(Class<?> expectedState) {
+
+        if (!expectedState.isInstance(state)) {
+            throw new OAuth2FlowWrongStateException(state.getClass()
+                                                         .getSimpleName(), new String[]{expectedState.getSimpleName()});
+        }
     }
 
 }
