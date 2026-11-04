@@ -88,6 +88,40 @@
                     <excludeFilterFile>config/spotbugs-exclusion.xml</excludeFilterFile>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                    <lineEndings>UNIX</lineEndings>
+                    <java>
+                        <includes>
+                            <include>src/main/java/**/*.java</include>
+                            <include>src/test/java/**/*.java</include>
+                        </includes>
+                        <excludes>
+                            <!-- the Eclipse formatter puts the module annotation on the same line as "module" -->
+                            <exclude>**/module-info.java</exclude>
+                        </excludes>
+                        <!-- Order: everything else, blank line, javax + java, blank line, static (IntelliJ layout) -->
+                        <importOrder>
+                            <order>,javax|java,\#</order>
+                        </importOrder>
+                        <removeUnusedImports/>
+                        <eclipse>
+                            <file>${project.basedir}/config/spotless/eclipse-java-formatter.xml</file>
+                        </eclipse>
+                        <trimTrailingWhitespace/>
+                    </java>
+                    <markdown>
+                        <includes>
+                            <include>*.md</include>
+                            <include>RFCs/*.md</include>
+                        </includes>
+                        <flexmark/>
+                    </markdown>
+                </configuration>
             </plugin>
         </plugins>
     </build>
