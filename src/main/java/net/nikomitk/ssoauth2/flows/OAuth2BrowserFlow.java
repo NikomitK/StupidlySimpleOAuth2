@@ -19,30 +19,11 @@ public class OAuth2BrowserFlow extends OAuth2AuthCodeFlow {
      * @param clientID          the OAuth2 clientID of your public OAuth2 client
      * @param scope             space separated strings, which should be requested from the OAuth2 provider. Example:
      *                          "string1 string2 string3"
-     * @param pkce              the {@link PKCE} instance to use for the OAuth2 flow. If it is null, the flow does
-     *                          not use PKCE. This is not recommended.
+     * @param pkce              the {@link PKCE} instance to use for the OAuth2 flow.
      */
     public OAuth2BrowserFlow(final String wellKnownEndpoint, final String clientID, final String scope, final PKCE pkce) {
 
         super(wellKnownEndpoint, clientID, scope, pkce);
-    }
-
-    /**
-     * Starts an http server on the loopback interface and a random port. Tries to open the default browser with the
-     * authorization URL.
-     *
-     * @throws RuntimeException when the browser can not be opened
-     */
-    @Override
-    public OAuth2AuthCodeFlow startFlow() {
-
-        super.startFlow();
-        try {
-            Util.openBrowser(getAuthUri());
-        } catch (final UnsupportedOperationException | IOException e) {
-            throw new RuntimeException(e);
-        }
-        return this;
     }
 
     /**

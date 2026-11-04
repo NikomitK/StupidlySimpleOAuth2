@@ -126,6 +126,11 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
     private final Configuration configuration;
     private final Object lock;
 
+    /**
+     * Create a new Instance of the OAuth2AuthCodeFlow.
+     *
+     * @param configuration an initialized configuration object
+     */
     public OAuth2AuthCodeFlow(final Configuration configuration) {
 
         this(configuration, new Object());
@@ -140,7 +145,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
     }
 
     /**
-     * Create a new Instance of the OAuth2BrowserFlow.
+     * Create a new Instance of the OAuth2AuthCodeFlow.
      *
      * @param wellKnownEndpoint the well-known-endpoint of your OAuth2 provider. Usually ends with /
      *                          .well-known/openid-configuration
@@ -156,14 +161,14 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
     }
 
     /**
-     * Returns the last URI that was used in the OAuth2 flow.
+     * Returns the URI that a user can use to authorize.
      *
-     * @return the last URI
+     * @return the authorization URI
      */
     public String getAuthUri() {
 
 
-        if (getState() instanceof AuthCodeFlowState.AwaitingAuthCode awaitingAuthCode) {
+        if (getState() instanceof final AuthCodeFlowState.AwaitingAuthCode awaitingAuthCode) {
             return awaitingAuthCode.getUserUri();
         } else {
             throw new OAuth2FlowWrongStateException(getState().getClass()
@@ -193,7 +198,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
     public OAuth2AuthCodeFlow requestAccessToken() {
 
         synchronized (lock) {
-            if (getState() instanceof AuthCodeFlowState.AuthCodePresent authCodePresent) {
+            if (getState() instanceof final AuthCodeFlowState.AuthCodePresent authCodePresent) {
 
                 final String body = HttpFormBodyBuilder.newBuilder()
                                                        .addFormData("grant_type", "authorization_code")
@@ -235,7 +240,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
     public OAuth2AuthCodeFlow refreshAccessToken() {
 
         synchronized (lock) {
-            if (getState() instanceof AuthCodeFlowState.RefreshTokenPresent refreshTokenPresent) {
+            if (getState() instanceof final AuthCodeFlowState.RefreshTokenPresent refreshTokenPresent) {
 
                 final HttpRequest request = prepareRefreshRequest(refreshTokenPresent, configuration);
                 try {
@@ -292,7 +297,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
     private void redirectExchangeHandler(final HttpExchange exchange) throws IOException {
 
         synchronized (lock) {
-            if (getState() instanceof AuthCodeFlowState.AwaitingAuthCode awaitingAuthCode) {
+            if (getState() instanceof final AuthCodeFlowState.AwaitingAuthCode awaitingAuthCode) {
 
                 final String code = Util.getQueryParameter(exchange, "code");
                 final String stateParam = Util.getQueryParameter(exchange, "state");
@@ -312,7 +317,6 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
 
             } else {
                 sendResponse(exchange, 500, "The current state is not AwaitingAuthCode. You can now close this window.");
-                return;
             }
         }
     }
@@ -364,10 +368,10 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
                 throw new RuntimeException(e);
             }
 
-            var redirectUri = buildRedirectUri(server.getAddress());
-            var codeVerifier = PKCE.generateCodeVerifier(32);
-            var stateParam = Util.generateRandomString(32);
-            var userUri = buildUrl(redirectUri, codeVerifier, stateParam);
+            final var redirectUri = buildRedirectUri(server.getAddress());
+            final var codeVerifier = PKCE.generateCodeVerifier(32);
+            final var stateParam = Util.generateRandomString(32);
+            final var userUri = buildUrl(redirectUri, codeVerifier, stateParam);
             server.createContext("/oauth2/redirect", this::redirectExchangeHandler);
             transitionWithTimeout(new AuthCodeFlowState.AwaitingAuthCode(server, redirectUri, stateParam, codeVerifier, userUri), Duration.ofSeconds(120), new AuthCodeFlowState.Initial());
             server.start();
@@ -379,7 +383,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
     @Override
     public OAuth2AccessToken getAccessToken() {
 
-        if (getState() instanceof AuthorizedState authorizedState) {
+        if (getState() instanceof final AuthorizedState authorizedState) {
             return authorizedState.getAccessToken();
         } else {
             throw new OAuth2FlowWrongStateException(getState().getClass()
