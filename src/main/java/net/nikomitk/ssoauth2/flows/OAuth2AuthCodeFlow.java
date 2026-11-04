@@ -68,7 +68,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
             private final AtomicBoolean closed = new AtomicBoolean(false);
             private volatile ScheduledFuture<?> timeout;
 
-            AwaitingAuthCode(HttpServer server, String redirectUri, String stateParam, String codeVerifier, String userUri) {
+            AwaitingAuthCode(final HttpServer server, final String redirectUri, final String stateParam, final String codeVerifier, final String userUri) {
 
                 this.server = server;
                 this.redirectUri = redirectUri;

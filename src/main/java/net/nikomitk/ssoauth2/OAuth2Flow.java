@@ -73,19 +73,19 @@ public abstract class OAuth2Flow {
     }
 
 
-    protected void transitionTo(OAuth2FlowState newState) {
+    protected void transitionTo(final OAuth2FlowState newState) {
 
-        OAuth2FlowState previousState = state;
+        final OAuth2FlowState previousState = state;
         state = newState;
-        if (previousState instanceof ClosableState closableState) {
+        if (previousState instanceof final ClosableState closableState) {
             closableState.close();
         }
-        if (newState instanceof StartableState startableState) {
+        if (newState instanceof final StartableState startableState) {
             startableState.start();
         }
     }
 
-    protected void transitionWithTimeout(ExpiringState newState, Duration delay, OAuth2FlowState timeoutState) {
+    protected void transitionWithTimeout(final ExpiringState newState, final Duration delay, final OAuth2FlowState timeoutState) {
 
         transitionTo(newState);
         newState.setTimeout(expireAfter(delay, timeoutState));
