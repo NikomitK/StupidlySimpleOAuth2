@@ -2,7 +2,10 @@ package net.nikomitk.ssoauth2.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
@@ -11,7 +14,8 @@ import java.time.Instant;
  * Class used to represent the JSON response from an OAuth Authorization Server for the "AccessTokenResponse" described in Section 4.1.4 of RFC6749.
  */
 @Getter
-@Setter
+@NoArgsConstructor 
+@AllArgsConstructor 
 public class OAuth2TokenResponse {
 
     @JsonProperty("access_token")

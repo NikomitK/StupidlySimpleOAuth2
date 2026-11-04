@@ -1,15 +1,21 @@
 package net.nikomitk.ssoauth2.flows;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+
+import lombok.NonNull;
 import net.nikomitk.ssoauth2.OAuth2Flow;
 import net.nikomitk.ssoauth2.OAuth2FlowState;
+import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
 import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowInterruptedException;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowNotInitializedException;
+import net.nikomitk.ssoauth2.exception.OAuth2FlowWrongStateException;
 import net.nikomitk.ssoauth2.exception.OAuth2RequestException;
 import net.nikomitk.ssoauth2.security.PKCE;
+import net.nikomitk.ssoauth2.states.AuthorizedState;
 import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
 import net.nikomitk.ssoauth2.util.UrlBuilder;
 import net.nikomitk.ssoauth2.util.Util;
@@ -36,7 +42,7 @@ import static net.nikomitk.ssoauth2.util.Util.sendResponse;
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public class OAuth2AuthCodeFlow extends OAuth2Flow {
 
-    public record Configuration(OAuth2Endpoint endpoint, String clientID, String scope, PKCE pkce) {
+    public record Configuration(OAuth2Endpoint endpoint, String clientID, String scope, @NonNull PKCE pkce) {
         public Configuration(final String wellKnownEndpoint, final String clientID, final String scope, final PKCE pkce) {
             this(OAuth2Endpoint.queryWellKnownEndpoint(wellKnownEndpoint), clientID, scope, pkce);
         }
@@ -44,24 +50,32 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
     
     public sealed interface AuthCodeFlowState extends OAuth2FlowState {
         record Initial() implements AuthCodeFlowState {}
-        record AwaitingAuthCode(String accessCode) implements AuthCodeFlowState {}
-        record AuthCodePresent(String refreshToken) implements AuthCodeFlowState {}
-        record AwaitingAccessToken(String accessToken) implements AuthCodeFlowState {}
-        record AccessTokenPresent(String refreshToken) implements AuthCodeFlowState {}
-        record RefreshTokenPresent(String refreshToken) implements AuthCodeFlowState {}
+        record AwaitingAuthCode(HttpServer server, String redirectUri, String stateParam, String codeVerifier, String userUri) implements AuthCodeFlowState {
+        }
+        record AuthCodePresent(String authCode, String redirectUri, String codeVerifier) implements AuthCodeFlowState {}
+        record AwaitingAccessToken(String authCode, String redirectUri, String codeVerifier) implements AuthCodeFlowState {}
+        record AccessTokenPresent(OAuth2AccessToken accessToken) implements AuthCodeFlowState, AuthorizedState {
+
+            @Override
+            public OAuth2AccessToken getAccessToken() {
+                return accessToken;
+            }}
+        record RefreshTokenPresent(String refreshToken, OAuth2AccessToken accessToken) implements AuthCodeFlowState, AuthorizedState {
+
+            @Override
+            public OAuth2AccessToken getAccessToken() {
+                return accessToken;
+            }}
+        record RefreshingAccessToken(String refreshToken) implements AuthCodeFlowState {}
     }
 
     private final Configuration configuration;
-    private volatile CompletableFuture<String> futureAccessCode;
-    private volatile String refreshToken;
-    private String lastCodeVerifier;
-    private volatile String lastState;
-    private volatile String lastUri;
-    private volatile String lastRedirectUri;
-    private volatile Optional<HttpServer> httpServer = Optional.empty();
+    private volatile AuthCodeFlowState state;
+    private final Object lock = new Object();
 
     public OAuth2AuthCodeFlow(final Configuration configuration) {
         this.configuration = configuration;
+        this.state = new AuthCodeFlowState.Initial();
     }
 
     /**
@@ -88,7 +102,12 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
      */
     public String getAuthUri() {
 
-        return lastUri;
+        synchronized(lock) {
+        if(state instanceof AuthCodeFlowState.AwaitingAuthCode awaitingAuthCode) {
+            return awaitingAuthCode.userUri();
+        } else {
+            throw new OAuth2FlowWrongStateException(state.getClass().getSimpleName(), new String[]{"AwaitingAuthCode"});
+        }}
     }
 
     /**
@@ -99,13 +118,8 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
      */
     @Override
     public OAuth2AuthCodeFlow startFlow() {
-
-        try {
-            startHttpServer(0);
-        } catch (final IOException e) {
-            throw new RuntimeException(e);
-        }
-        return this;
+        
+        return startFlow(0);
     }
 
     /**
@@ -114,126 +128,119 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
      *
      * @return the instance this was called on
      */
-    public OAuth2AuthCodeFlow requestAccessToken() {
+    public  OAuth2AuthCodeFlow requestAccessToken() {
+        synchronized(lock) {
+        if(state instanceof AuthCodeFlowState.AuthCodePresent authCodePresent) {
 
-        final String accessCode;
-        try {
+            final String body = HttpFormBodyBuilder.newBuilder()
+            .addFormData("grant_type", "authorization_code")
+            .addFormData("scope", this.configuration.scope())
+            .addFormData("code", authCodePresent.authCode)
+            .addFormData("redirect_uri", authCodePresent.redirectUri)
+            .addFormData("client_id", configuration.clientID())
+            .addFormData("code_verifier", authCodePresent.codeVerifier())
+            .build();
 
-            accessCode = futureAccessCode.get(120000, TimeUnit.MILLISECONDS);
+            final HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(this.configuration.endpoint.getTokenEndpoint()))
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .method("POST", HttpRequest.BodyPublishers.ofString(body))
+            .build();
 
-        } catch (final InterruptedException | TimeoutException e) {
-            stopHttpServer();
-            throw new OAuth2FlowNotInitializedException();
-        } catch (final ExecutionException e) {
-            if(e.getCause() instanceof final OAuth2FlowInterruptedException ex) {
-                throw ex;
-            } else {
+            try {
+
+                final OAuth2TokenResponse tokenResponse = requestToken(request, configuration, objectMapper);
+
+                if(tokenResponse.getRefreshToken() != null) {
+                    state = new AuthCodeFlowState.RefreshTokenPresent(tokenResponse.getRefreshToken(), new OAuth2AccessToken(tokenResponse));
+                } else {
+                    state = new AuthCodeFlowState.AccessTokenPresent(new OAuth2AccessToken(tokenResponse));
+                }
+    
+                return this;
+            } catch (final IOException | InterruptedException e) {
+                state = new AuthCodeFlowState.Initial();
                 throw new RuntimeException(e);
             }
-        }
-
-        final HttpFormBodyBuilder bodyBuilder = HttpFormBodyBuilder.newBuilder()
-                                                                   .addFormData("grant_type", "authorization_code")
-                                                                   .addFormData("scope", scope)
-                                                                   .addFormData("code", accessCode)
-                                                                   .addFormData("redirect_uri", lastRedirectUri)
-                                                                   .addFormData("client_id", clientID);
-
-        if (this.pkce != null) {
-            bodyBuilder.addFormData("code_verifier", lastCodeVerifier);
-        }
-        final String body = bodyBuilder.build();
-
-        final HttpRequest request = HttpRequest.newBuilder()
-                                               .uri(URI.create(endpoint.getTokenEndpoint()))
-                                               .header("Content-Type", "application/x-www-form-urlencoded")
-                                               .method("POST", HttpRequest.BodyPublishers.ofString(body))
-                                               .build();
-
-        try (final HttpClient client = HttpClient.newHttpClient()) {
-
-            final HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            OAuth2RequestException.check(response);
-
-            lastOAuth2TokenResponse = objectMapper.readValue(response.body(), OAuth2TokenResponse.class);
-            this.refreshToken = lastOAuth2TokenResponse.getRefreshToken();
-
-            return this;
-        } catch (final IOException | InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
+        } else {
+            throw new OAuth2FlowWrongStateException(state.getClass().getSimpleName(), new String[]{"AuthCodePresent"});
+        }}
     }
 
     public OAuth2AuthCodeFlow refreshAccessToken() {
+        synchronized(lock) {
+        if(state instanceof AuthCodeFlowState.RefreshTokenPresent refreshTokenPresent) {
+            
+            final HttpRequest request = prepareRefreshRequest(refreshTokenPresent, configuration);
+            try {
+                final OAuth2TokenResponse tokenResponse = requestToken(request, configuration, objectMapper);
+                
 
-        synchronized(this) {
-
-        if (this.refreshToken == null) {
-            throw new OAuth2FlowNotInitializedException();
-        }
-
-        final String body = HttpFormBodyBuilder.newBuilder()
-                                               .addFormData("grant_type", "refresh_token")
-                                               .addFormData("refresh_token", this.refreshToken)
-                                               .addFormData("scope", scope)
-                                               .addFormData("client_id", this.clientID)
-                                               .build();
-
-        final HttpRequest request = HttpRequest.newBuilder()
-                                               .uri(URI.create(endpoint.getTokenEndpoint()))
-                                               .header("Content-Type", "application/x-www-form-urlencoded")
-                                               .method("POST", HttpRequest.BodyPublishers.ofString(body))
-                                               .build();
-
-        try (final HttpClient client = HttpClient.newHttpClient()) {
-            final var response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            OAuth2RequestException.check(response);
-            this.lastOAuth2TokenResponse = objectMapper.readValue(response.body(), OAuth2TokenResponse.class);
-            this.refreshToken = lastOAuth2TokenResponse.getRefreshToken();
-        } catch (final IOException | InterruptedException e) {
-            throw new RuntimeException(e);
+                String refreshToken = tokenResponse.getRefreshToken();
+                if(refreshToken == null) {
+                    refreshToken = refreshTokenPresent.refreshToken();
+                }
+                state = new AuthCodeFlowState.RefreshTokenPresent(refreshToken, new OAuth2AccessToken(tokenResponse));
+                
+            } catch (final IOException | InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            
+            
+        } else {
+            throw new OAuth2FlowWrongStateException(state.getClass().getSimpleName(), new String[]{"RefreshTokenPresent"});
         }
     }
         return this;
     }
 
-    private void startHttpServer(final int port) throws IOException {
+    private static OAuth2TokenResponse requestToken(final HttpRequest request, final Configuration configuration, final ObjectMapper objectMapper) throws IOException, InterruptedException {
+    
+        try (final HttpClient client = HttpClient.newHttpClient()) {
+            final var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            OAuth2RequestException.check(response);
+            return objectMapper.readValue(response.body(), OAuth2TokenResponse.class);
+        }
+    }
 
-        futureAccessCode = new CompletableFuture<>();
+    private static HttpRequest prepareRefreshRequest(final AuthCodeFlowState.RefreshTokenPresent refreshTokenPresent, final Configuration configuration) {
+        final String body = HttpFormBodyBuilder.newBuilder()
+        .addFormData("grant_type", "refresh_token")
+        .addFormData("refresh_token", refreshTokenPresent.refreshToken())
+        .addFormData("scope", configuration.scope())
+        .addFormData("client_id", configuration.clientID())
+        .build();
 
-        final HttpServer server = Util.createHttpServer(port);
-
-        lastRedirectUri = buildRedirectUri(server.getAddress());
-        lastUri = buildUrl(lastRedirectUri);
-        server.createContext("/oauth2/redirect", this::redirectExchangeHandler);
-        httpServer = Optional.of(server);
-        server.start();
+        return HttpRequest.newBuilder()
+        .uri(URI.create(configuration.endpoint.getTokenEndpoint()))
+        .header("Content-Type", "application/x-www-form-urlencoded")
+        .method("POST", HttpRequest.BodyPublishers.ofString(body))
+        .build();
     }
 
     private void redirectExchangeHandler(final HttpExchange exchange) throws IOException {
+        synchronized(lock) {
+        if(state instanceof AuthCodeFlowState.AwaitingAuthCode awaitingAuthCode) {
 
-        final String code = Util.getQueryParameter(exchange, "code");
-        final String state = Util.getQueryParameter(exchange, "state");
+            final String code = Util.getQueryParameter(exchange, "code");
+            final String stateParam = Util.getQueryParameter(exchange, "state");
 
-        if(state == null || !MessageDigest.isEqual(lastState.getBytes(), state.getBytes())) {
-            sendResponse(exchange, 400, "State mismatch. This might be a CSRF attack. You can now close this window.");
-            return;
-        } else if (code != null && !code.isBlank()) {
-            sendResponse(exchange, 200, "Authentication successful. You can now close this window.");
-            futureAccessCode.complete(code);
+            if(stateParam == null || !MessageDigest.isEqual(awaitingAuthCode.stateParam().getBytes(), stateParam.getBytes())) {
+                sendResponse(exchange, 400, "State mismatch. This might be a CSRF attack. You can now close this window.");
+                return;
+            } else if (code != null && !code.isBlank()) {
+                sendResponse(exchange, 200, "Authentication successful. You can now close this window.");
+                state = new AuthCodeFlowState.AuthCodePresent(code, awaitingAuthCode.redirectUri(), awaitingAuthCode.codeVerifier());
+            } else {
+                sendResponse(exchange, 500, "An error occurred. You can now close this window.");
+                state = new AuthCodeFlowState.Initial();
+            }
+            awaitingAuthCode.server().stop(0);
+            
         } else {
-            sendResponse(exchange, 500, "An error occurred. You can now close this window.");
-            futureAccessCode.completeExceptionally(new OAuth2FlowInterruptedException("No access code found in " + "the redirect URL."));
-        }
-
-        stopHttpServer();
-        lastState = null;
-    }
-
-    private void stopHttpServer() {
-        httpServer.ifPresent(server -> server.stop(0));
-        httpServer = Optional.empty();
+            sendResponse(exchange, 500, "The current state is not AwaitingAuthCode. You can now close this window.");
+            return;
+        }}
     }
 
     private String buildRedirectUri(final InetSocketAddress address) {
@@ -242,24 +249,16 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
                                   .getHostAddress() + ":" + address.getPort() + "/oauth2/redirect";
     }
 
-    private String buildUrl(final String redirectUri) {
+    private String buildUrl(final String redirectUri, final String codeVerifier, final String stateParam) {
 
-        lastState = Util.generateRandomString(32);
-
-        final UrlBuilder builder = UrlBuilder.withBasePath(endpoint.getAuthorizationEndpoint())
+        final UrlBuilder builder = UrlBuilder.withBasePath(this.configuration.endpoint().getAuthorizationEndpoint())
                                              .addQueryParameter("response_type", "code")
-                                             .addQueryParameter("client_id", this.clientID)
+                                             .addQueryParameter("client_id", this.configuration.clientID())
                                              .addQueryParameter("redirect_uri", redirectUri)
-                                             .addQueryParameter("scope", this.scope)
-                                             .addQueryParameter("state", lastState);
-
-        if (pkce != null) {
-
-            lastCodeVerifier = PKCE.generateCodeVerifier(32);
-
-            builder.addQueryParameter("code_challenge", pkce.generateCodeChallenge(lastCodeVerifier))
-                   .addQueryParameter("code_challenge_method", pkce.getCodeChallengeMethod());
-        }
+                                             .addQueryParameter("scope", this.configuration.scope())
+                                             .addQueryParameter("state", stateParam)
+                                             .addQueryParameter("code_challenge", this.configuration.pkce().generateCodeChallenge(codeVerifier))
+                                             .addQueryParameter("code_challenge_method", this.configuration.pkce().getCodeChallengeMethod());
 
         return builder.build();
     }
@@ -272,13 +271,40 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
      * @return the instance this was called on
      */
     public OAuth2AuthCodeFlow startFlow(final int port) {
+        synchronized(lock) {
+                
+        if(!(state instanceof AuthCodeFlowState.Initial)) {
+            throw new OAuth2FlowWrongStateException(state.getClass().getSimpleName(), new String[]{"Initial"});
+        }
+
+        final HttpServer server;
 
         try {
-            startHttpServer(port);
+            server = Util.createHttpServer(port);
         } catch (final IOException e) {
             throw new RuntimeException(e);
         }
+
+        var redirectUri = buildRedirectUri(server.getAddress());
+        var codeVerifier = PKCE.generateCodeVerifier(32);
+        var stateParam = Util.generateRandomString(32);
+        var userUri = buildUrl(redirectUri, codeVerifier, stateParam);
+        server.createContext("/oauth2/redirect", this::redirectExchangeHandler);
+        state = new AuthCodeFlowState.AwaitingAuthCode(server, redirectUri, stateParam, codeVerifier, userUri);
+        server.start();
+        
         return this;
+    }}
+
+    @Override 
+    public OAuth2AccessToken getAccessToken() {
+        synchronized(lock) {
+        if(state instanceof AuthorizedState authorizedState) {
+            return authorizedState.getAccessToken();
+        } else {
+            throw new OAuth2FlowWrongStateException(state.getClass().getSimpleName(), new String[]{"AuthorizedState"});
+        }
+        }
     }
 
 }

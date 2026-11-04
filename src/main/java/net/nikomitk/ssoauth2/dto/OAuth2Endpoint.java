@@ -3,8 +3,10 @@ package net.nikomitk.ssoauth2.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 
 import java.io.IOException;
 import java.net.http.HttpClient;
@@ -15,7 +17,8 @@ import java.util.List;
  * Data class for an OAuth2 Authorization Server
  */
 @Getter
-@Setter
+@AllArgsConstructor 
+@NoArgsConstructor
 public class OAuth2Endpoint {
 
     private String issuer;
