@@ -7,6 +7,7 @@ import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowNotReadyException;
 import net.nikomitk.ssoauth2.states.ClosableState;
 import net.nikomitk.ssoauth2.states.ExpiringState;
+import net.nikomitk.ssoauth2.states.OAuth2FlowState;
 import net.nikomitk.ssoauth2.states.StartableState;
 import net.nikomitk.ssoauth2.util.Util;
 

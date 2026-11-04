@@ -1,4 +1,4 @@
-package net.nikomitk.ssoauth2;
+package net.nikomitk.ssoauth2.states;
 
 public interface OAuth2FlowState {
 
