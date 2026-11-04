@@ -12,6 +12,7 @@ import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowWrongStateException;
 import net.nikomitk.ssoauth2.exception.OAuth2RequestException;
+import net.nikomitk.ssoauth2.flows.types.ResettableFlow;
 import net.nikomitk.ssoauth2.security.PKCE;
 import net.nikomitk.ssoauth2.states.AuthorizedState;
 import net.nikomitk.ssoauth2.states.ClosableState;
@@ -37,7 +38,7 @@ import static net.nikomitk.ssoauth2.util.Util.sendResponse;
  * Class encapsulating the OAuth2 Authorization Code flow.
  */
 @SuppressWarnings({"unused", "UnusedReturnValue"})
-public class OAuth2AuthCodeFlow extends OAuth2Flow {
+public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
 
     public record Configuration(OAuth2Endpoint endpoint, String clientID, String scope, @NonNull PKCE pkce) {
 
@@ -99,9 +100,6 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
 
         record AuthCodePresent(String authCode, String redirectUri, String codeVerifier) implements AuthCodeFlowState {}
 
-        record AwaitingAccessToken(String authCode, String redirectUri,
-                String codeVerifier) implements AuthCodeFlowState {}
-
         record AccessTokenPresent(OAuth2AccessToken accessToken) implements AuthCodeFlowState, AuthorizedState {
 
             @Override
@@ -122,8 +120,6 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
             }
 
         }
-
-        record RefreshingAccessToken(String refreshToken) implements AuthCodeFlowState {}
 
     }
 
@@ -201,7 +197,6 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
 
                 final String body = HttpFormBodyBuilder.newBuilder()
                                                        .addFormData("grant_type", "authorization_code")
-                                                       .addFormData("scope", this.configuration.scope())
                                                        .addFormData("code", authCodePresent.authCode)
                                                        .addFormData("redirect_uri", authCodePresent.redirectUri)
                                                        .addFormData("client_id", configuration.clientID())
@@ -212,6 +207,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
                                                        .uri(URI.create(this.configuration.endpoint.getTokenEndpoint()))
                                                        .header("Content-Type", "application/x-www-form-urlencoded")
                                                        .method("POST", HttpRequest.BodyPublishers.ofString(body))
+                                                       .timeout(Duration.ofSeconds(30))
                                                        .build();
 
                 try {
@@ -267,7 +263,9 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
 
     private static OAuth2TokenResponse requestToken(final HttpRequest request, final Configuration configuration, final ObjectMapper objectMapper) throws IOException, InterruptedException {
 
-        try (final HttpClient client = HttpClient.newHttpClient()) {
+        try (final HttpClient client = HttpClient.newBuilder()
+                                                 .connectTimeout(Duration.ofSeconds(30))
+                                                 .build()) {
             final var response = client.send(request, HttpResponse.BodyHandlers.ofString());
             OAuth2RequestException.check(response);
             return objectMapper.readValue(response.body(), OAuth2TokenResponse.class);
@@ -287,6 +285,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
                           .uri(URI.create(configuration.endpoint.getTokenEndpoint()))
                           .header("Content-Type", "application/x-www-form-urlencoded")
                           .method("POST", HttpRequest.BodyPublishers.ofString(body))
+                          .timeout(Duration.ofSeconds(30))
                           .build();
     }
 
@@ -387,6 +386,14 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
                                                               .getSimpleName(), new String[]{"AuthorizedState"});
         }
 
+    }
+
+    @Override
+    public void reset() {
+
+        synchronized (lock) {
+            transitionTo(new AuthCodeFlowState.Initial());
+        }
     }
 
 }
