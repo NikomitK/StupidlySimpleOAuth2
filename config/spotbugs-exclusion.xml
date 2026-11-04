@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+
+    <!--
+        AwaitingAuthCode holds the HttpServer that waits for the redirect. It is an internal handle of the flow:
+        the state is kept in a private field of OAuth2AuthCodeFlow and never handed out, so the mutable server
+        is not exposed to callers.
+    -->
+    <Match>
+        <Class name="net.nikomitk.ssoauth2.flows.OAuth2AuthCodeFlow$AuthCodeFlowState$AwaitingAuthCode"/>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
+</FindBugsFilter>
