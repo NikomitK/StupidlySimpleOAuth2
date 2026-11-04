@@ -61,20 +61,16 @@ public class Util {
             return null;
         }
         final String[] params = query.split("&");
-        String requestedParam = null;
         for (final String param : params) {
             if (param.startsWith(parameterName + "=")) {
-                final String[] parts = param.split("=");
+                final String[] parts = param.split("=", 2);
                 if (parts.length < 2) {
                     return "";
-                } else if (parts.length > 2) {
-                    return parts[1];
                 }
-                requestedParam = param.split("=")[1];
-                break;
+                return param.split("=")[1];
             }
         }
-        return requestedParam;
+        return null;
     }
 
     public static void sendResponse(final HttpExchange exchange, final int responseCode, final String responseBody) throws IOException {
