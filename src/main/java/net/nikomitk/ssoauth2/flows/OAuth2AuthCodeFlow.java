@@ -15,6 +15,7 @@ import net.nikomitk.ssoauth2.exception.OAuth2RequestException;
 import net.nikomitk.ssoauth2.security.PKCE;
 import net.nikomitk.ssoauth2.states.AuthorizedState;
 import net.nikomitk.ssoauth2.states.ClosableState;
+import net.nikomitk.ssoauth2.states.ExpiringState;
 import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
 import net.nikomitk.ssoauth2.util.UrlBuilder;
 import net.nikomitk.ssoauth2.util.Util;
@@ -26,9 +27,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.MessageDigest;
-import java.util.concurrent.ScheduledExecutorService;
+import java.time.Duration;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static net.nikomitk.ssoauth2.util.Util.sendResponse;
@@ -52,7 +52,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
 
         record Initial() implements AuthCodeFlowState {}
 
-        final class AwaitingAuthCode implements AuthCodeFlowState, ClosableState {
+        final class AwaitingAuthCode implements AuthCodeFlowState, ClosableState, ExpiringState {
 
             private final HttpServer server;
             @Getter
@@ -66,21 +66,22 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
 
             private final AtomicBoolean closed = new AtomicBoolean(false);
             private volatile ScheduledFuture<?> timeout;
-            private final int timeoutSeconds;
 
-            AwaitingAuthCode(HttpServer server, String redirectUri, String stateParam, String codeVerifier, String userUri, int timeoutSeconds) {
+            AwaitingAuthCode(HttpServer server, String redirectUri, String stateParam, String codeVerifier, String userUri) {
 
                 this.server = server;
                 this.redirectUri = redirectUri;
                 this.stateParam = stateParam;
                 this.codeVerifier = codeVerifier;
                 this.userUri = userUri;
-                this.timeoutSeconds = timeoutSeconds;
             }
 
-            void scheduleTimeout(ScheduledExecutorService scheduler, Runnable runnable) {
+            @Override
+            public void setTimeout(final ScheduledFuture<?> future) {
 
-                timeout = scheduler.schedule(runnable, timeoutSeconds, TimeUnit.SECONDS);
+                timeout = future;
+                if (closed.get())
+                    future.cancel(false); // closed before the future arrived
             }
 
             @Override
@@ -93,7 +94,6 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
                     server.stop(0);
                 }
             }
-
 
         }
 
@@ -128,9 +128,17 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
     }
 
     private final Configuration configuration;
+    private final Object lock;
 
     public OAuth2AuthCodeFlow(final Configuration configuration) {
 
+        this(configuration, new Object());
+    }
+
+    private OAuth2AuthCodeFlow(final Configuration configuration, final Object lock) {
+
+        super(lock);
+        this.lock = lock;
         this.configuration = configuration;
         transitionTo(new AuthCodeFlowState.Initial());
     }
@@ -148,8 +156,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
      */
     public OAuth2AuthCodeFlow(final String wellKnownEndpoint, final String clientID, final String scope, final PKCE pkce) {
 
-        this.configuration = new Configuration(wellKnownEndpoint, clientID, scope, pkce);
-        super();
+        this(new Configuration(wellKnownEndpoint, clientID, scope, pkce));
     }
 
     /**
@@ -159,14 +166,14 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
      */
     public String getAuthUri() {
 
-        synchronized (lock) {
-            if (getState() instanceof AuthCodeFlowState.AwaitingAuthCode awaitingAuthCode) {
-                return awaitingAuthCode.getUserUri();
-            } else {
-                throw new OAuth2FlowWrongStateException(getState().getClass()
-                                                                  .getSimpleName(), new String[]{"AwaitingAuthCode"});
-            }
+
+        if (getState() instanceof AuthCodeFlowState.AwaitingAuthCode awaitingAuthCode) {
+            return awaitingAuthCode.getUserUri();
+        } else {
+            throw new OAuth2FlowWrongStateException(getState().getClass()
+                                                              .getSimpleName(), new String[]{"AwaitingAuthCode"});
         }
+
     }
 
     /**
@@ -363,7 +370,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
             var stateParam = Util.generateRandomString(32);
             var userUri = buildUrl(redirectUri, codeVerifier, stateParam);
             server.createContext("/oauth2/redirect", this::redirectExchangeHandler);
-            transitionTo(new AuthCodeFlowState.AwaitingAuthCode(server, redirectUri, stateParam, codeVerifier, userUri, 120));
+            transitionWithTimeout(new AuthCodeFlowState.AwaitingAuthCode(server, redirectUri, stateParam, codeVerifier, userUri), Duration.ofSeconds(120), new AuthCodeFlowState.Initial());
             server.start();
 
             return this;
@@ -373,14 +380,13 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow {
     @Override
     public OAuth2AccessToken getAccessToken() {
 
-        synchronized (lock) {
-            if (getState() instanceof AuthorizedState authorizedState) {
-                return authorizedState.getAccessToken();
-            } else {
-                throw new OAuth2FlowWrongStateException(getState().getClass()
-                                                                  .getSimpleName(), new String[]{"AuthorizedState"});
-            }
+        if (getState() instanceof AuthorizedState authorizedState) {
+            return authorizedState.getAccessToken();
+        } else {
+            throw new OAuth2FlowWrongStateException(getState().getClass()
+                                                              .getSimpleName(), new String[]{"AuthorizedState"});
         }
+
     }
 
 }

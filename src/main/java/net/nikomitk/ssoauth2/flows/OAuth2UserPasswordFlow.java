@@ -39,7 +39,7 @@ public class OAuth2UserPasswordFlow extends OAuth2Flow {
      */
     public OAuth2UserPasswordFlow(final String wellKnownEndpoint, final String clientID, final String username, final String password, final String scope) {
 
-        super();
+        super(new Object());
         this.endpoint = OAuth2Endpoint.queryWellKnownEndpoint(wellKnownEndpoint);
         this.clientID = clientID;
         this.username = username;

@@ -10,6 +10,8 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.function.Function;
 
 public class Util {
@@ -44,6 +46,9 @@ public class Util {
         final InetSocketAddress address = new InetSocketAddress(InetAddress.getLoopbackAddress(), port);//new
         // InetSocketAddress("127.0.0.1", 0);
         final HttpServer server = HttpServer.create();
+        server.setExecutor(Executors.newThreadPerTaskExecutor(Thread.ofVirtual()
+                                                                    .name("oauth2-redirect-", 0)
+                                                                    .factory()));
         server.bind(address, 2);
         return server;
     }
@@ -95,6 +100,17 @@ public class Util {
         final byte[] bytes = new byte[byteCount];
         secureRandom.nextBytes(bytes);
         return encoder.apply(bytes);
+    }
+
+    public static ScheduledThreadPoolExecutor createScheduler() {
+
+        final ScheduledThreadPoolExecutor s = new ScheduledThreadPoolExecutor(1, r -> {
+            final Thread t = new Thread(r, "oauth2-timeout");
+            t.setDaemon(true);
+            return t;
+        });
+        s.setRemoveOnCancelPolicy(true);
+        return s;
     }
 
 }

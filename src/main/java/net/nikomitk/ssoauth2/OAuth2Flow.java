@@ -5,13 +5,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowNotReadyException;
-import net.nikomitk.ssoauth2.exception.OAuth2FlowWrongStateException;
 import net.nikomitk.ssoauth2.states.ClosableState;
+import net.nikomitk.ssoauth2.states.ExpiringState;
 import net.nikomitk.ssoauth2.states.StartableState;
+import net.nikomitk.ssoauth2.util.Util;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Abstract base class for all OAuth2 flows.
@@ -21,16 +24,17 @@ public abstract class OAuth2Flow {
 
     protected final ObjectMapper objectMapper;
     private volatile OAuth2FlowState state;
-    protected final Object lock = new Object();
-    protected static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private final Object lock;
+    private static final ScheduledExecutorService scheduler = Util.createScheduler();
 
     protected volatile OAuth2TokenResponse lastOAuth2TokenResponse;
 
     /**
      * Initializes common attributes like the ObjectMapper and OAuth2TokenResponse
      */
-    protected OAuth2Flow() {
+    protected OAuth2Flow(final Object lock) {
 
+        this.lock = lock;
         objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
@@ -80,17 +84,26 @@ public abstract class OAuth2Flow {
         }
     }
 
+    protected void transitionWithTimeout(ExpiringState newState, Duration delay, OAuth2FlowState timeoutState) {
+
+        transitionTo(newState);
+        newState.setTimeout(expireAfter(delay, timeoutState));
+    }
+
     protected OAuth2FlowState getState() {
 
         return state;
     }
 
-    protected void checkState(Class<?> expectedState) {
+    private ScheduledFuture<?> expireAfter(final Duration duration, final OAuth2FlowState next) {
 
-        if (!expectedState.isInstance(state)) {
-            throw new OAuth2FlowWrongStateException(state.getClass()
-                                                         .getSimpleName(), new String[]{expectedState.getSimpleName()});
-        }
+        final OAuth2FlowState current = state; // caller holds lock
+        return scheduler.schedule(() -> {
+            synchronized (lock) {
+                if (state == current)
+                    transitionTo(next);
+            }
+        }, duration.toMillis(), TimeUnit.MILLISECONDS);
     }
 
 }
