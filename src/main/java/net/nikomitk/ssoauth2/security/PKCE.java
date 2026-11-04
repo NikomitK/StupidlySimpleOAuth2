@@ -73,8 +73,9 @@ public enum PKCE {
         digest.update(asciiCodeVerifier);
         final byte[] codeChallengeBytes = digest.digest();
         return Base64
-                .getUrlEncoder().withoutPadding()
-                .encodeToString(codeChallengeBytes);
+                     .getUrlEncoder()
+                     .withoutPadding()
+                     .encodeToString(codeChallengeBytes);
     }
 
     private static String createPlainCodeChallenge(final String codeVerifier) {

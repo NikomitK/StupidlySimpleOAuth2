@@ -3,7 +3,6 @@ package net.nikomitk.ssoauth2.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,7 +16,7 @@ import java.util.List;
  * Data class for an OAuth2 Authorization Server
  */
 @Getter
-@AllArgsConstructor 
+@AllArgsConstructor
 @NoArgsConstructor
 public class OAuth2Endpoint {
 
@@ -75,16 +74,19 @@ public class OAuth2Endpoint {
     public static OAuth2Endpoint queryWellKnownEndpoint(final String wellKnownEndpoint) {
 
         try (final HttpClient client = HttpClient.newHttpClient()) {
-            final HttpRequest request = HttpRequest.newBuilder().uri(java.net.URI.create(wellKnownEndpoint)).GET().build();
+            final HttpRequest request = HttpRequest.newBuilder()
+                                                   .uri(java.net.URI.create(wellKnownEndpoint))
+                                                   .GET()
+                                                   .build();
             final var response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
                 throw new RuntimeException("Failed to fetch well-known endpoint: " + response.statusCode());
             }
-            return new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).readValue(response.body(), OAuth2Endpoint.class);
+            return new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                                     .readValue(response.body(), OAuth2Endpoint.class);
         } catch (final IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
 
 }
-

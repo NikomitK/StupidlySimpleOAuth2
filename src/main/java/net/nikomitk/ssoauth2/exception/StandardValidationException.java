@@ -6,7 +6,8 @@ package net.nikomitk.ssoauth2.exception;
 public class StandardValidationException extends RuntimeException {
 
     public StandardValidationException(final int rfcNumber, final String url, final String message) {
-        final String msg = String.format("Input is not conforming to RFC%d (%s): %s",rfcNumber, url, message);
+
+        final String msg = String.format("Input is not conforming to RFC%d (%s): %s", rfcNumber, url, message);
         super(msg);
     }
 

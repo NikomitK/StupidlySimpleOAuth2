@@ -5,6 +5,7 @@ Legend: `[x]` met · `[~]` partially met · `[ ]` not met · `[-]` not applicabl
 Files: `AC` = [OAuth2AuthCodeFlow.java](../src/main/java/net/nikomitk/ssoauth2/flows/OAuth2AuthCodeFlow.java), `EP` = [OAuth2Endpoint.java](../src/main/java/net/nikomitk/ssoauth2/dto/OAuth2Endpoint.java)
 
 ## Redirect-based flow protection (§2.1)
+
 - [x] Only one fixed redirect URI is used; exact matching is up to the AS (port is the only variable part)
 - [x] No open redirector in the loopback handler
 - [ ] **CSRF protection (MUST)** – no `state`; PKCE is optional
@@ -20,6 +21,7 @@ Files: `AC` = [OAuth2AuthCodeFlow.java](../src/main/java/net/nikomitk/ssoauth2/f
 - [~] `http` only for loopback redirects – redirect is loopback `http` (fine), but **no check that authorization/token/well-known endpoints use `https`**
 
 ## Authorization code grant (§2.1.1)
+
 - [~] **Public clients MUST use PKCE** – supported, but opt-out via `null` (Javadoc: "not recommended")
 - [x] PKCE challenge is transaction-specific – new verifier on each `buildUrl` (`AC:223`)
 - [~] `S256` – supported and recommended in README; `PLAIN` is allowed and not rejected
@@ -29,27 +31,33 @@ Files: `AC` = [OAuth2AuthCodeFlow.java](../src/main/java/net/nikomitk/ssoauth2/f
 - [-] Validate `nonce` in ID token – no ID token handling at all (library doesn't parse ID tokens)
 
 ## Implicit grant (§2.1.2)
+
 - [x] `response_type=token` not implemented
 
 ## Token replay prevention (§2.2)
+
 - [~] **Refresh tokens: rotation** – a new refresh token replaces the old one (`AC:167`); but when the AS returns no new token the stored one becomes `null` (breaks non-rotating servers)
   - [ ] Atomic / thread-safe refresh – `refreshAccessToken()` and the fields are unsynchronized; concurrent refreshes can use an already-rotated token
   - [ ] `invalid_grant` on refresh → drop tokens / require re-authorization – not handled
-  - [ ] (Optional) DPoP (RFC 9449)
-  - [-] (Optional) mTLS
+  - [](Optional) DPoP (RFC 9449)
+  - [-](Optional) mTLS
 
 ## Access token privilege restriction (§2.3)
+
 - [x] Minimal scope – caller-controlled
-- [ ] (Optional) Resource indicators (RFC 8707)
+- [](Optional) Resource indicators (RFC 8707)
 - [ ] Documentation that tokens must only be sent to their intended resource servers
 
 ## Grants that must not be used (§2.4)
+
 - [ ] **ROPC grant is implemented** (`OAuth2UserPasswordFlow`, README lists it) – violates "MUST NOT be used". Only mitigated by a Javadoc/README warning; consider removing or marking `@Deprecated`
 
 ## Client authentication (§2.5)
+
 - [x] No client authentication, no embedded secrets
 
 ## Metadata & configuration (§2.6)
+
 - [x] Uses AS metadata (well-known endpoint) for `authorization_endpoint`, `token_endpoint`, `issuer`, `code_challenge_methods_supported`
   - [ ] `issuer` in the metadata is not validated against the URL it was fetched from
   - [ ] No manual endpoint configuration – `OAuth2Endpoint` can only be created via `queryWellKnownEndpoint`
@@ -57,6 +65,7 @@ Files: `AC` = [OAuth2AuthCodeFlow.java](../src/main/java/net/nikomitk/ssoauth2/f
 - [ ] Reject `http` for authorization, token and metadata endpoints
 
 ## Attack-specific client requirements (§4)
+
 - [x] §4.1.3 No wildcard/pattern redirect URIs
 - [~] §4.2.4 Redirect page: no third-party resources or links ✔, but no `Referrer-Policy: no-referrer` header (`Util.sendResponse` sends no headers); no `state` to invalidate
 - [x] §4.3.2 Library never puts access tokens in URIs
@@ -67,3 +76,4 @@ Files: `AC` = [OAuth2AuthCodeFlow.java](../src/main/java/net/nikomitk/ssoauth2/f
 - [x] §4.11.1 No open redirectors
 - [~] §4.14 Refresh token protection – tokens held in memory only; no handling for server-side expiry/revocation (`invalid_grant`)
 - [~] §4.9.3 Tokens as secrets – not logged and not persisted, but `OAuth2AccessToken` is a `record` whose generated `toString()` prints the token; `OAuth2RequestException` embeds the raw response body in its message
+

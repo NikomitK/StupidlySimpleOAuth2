@@ -12,10 +12,12 @@ public class OAuth2FlowNotReadyException extends RuntimeException {
     }
 
     public OAuth2FlowNotReadyException(final String message, final Throwable cause) {
+
         super(message, cause);
     }
 
     public OAuth2FlowNotReadyException() {
+
         super("This flow is not ready for this step yet!");
     }
 

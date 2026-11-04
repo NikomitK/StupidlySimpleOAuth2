@@ -51,20 +51,20 @@ public class OAuth2UserPasswordFlow extends OAuth2Flow {
     public OAuth2UserPasswordFlow startFlow() {
 
         final String body = HttpFormBodyBuilder
-                .newBuilder()
-                .addFormData("grant_type", "password")
-                .addFormData("username", this.username)
-                .addFormData("password", this.password)
-                .addFormData("scope", scope)
-                .addFormData("client_id", this.clientID)
-                .build();
+                                               .newBuilder()
+                                               .addFormData("grant_type", "password")
+                                               .addFormData("username", this.username)
+                                               .addFormData("password", this.password)
+                                               .addFormData("scope", scope)
+                                               .addFormData("client_id", this.clientID)
+                                               .build();
 
         this.httpRequest = HttpRequest
-                .newBuilder()
-                .uri(URI.create(endpoint.getTokenEndpoint()))
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .method("POST", HttpRequest.BodyPublishers.ofString(body))
-                .build();
+                                      .newBuilder()
+                                      .uri(URI.create(endpoint.getTokenEndpoint()))
+                                      .header("Content-Type", "application/x-www-form-urlencoded")
+                                      .method("POST", HttpRequest.BodyPublishers.ofString(body))
+                                      .build();
 
         return this;
     }
