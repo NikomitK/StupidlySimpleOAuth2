@@ -29,13 +29,11 @@ public class Util {
                    .browse(URI.create(url));
         } else if (osName != null && osName.equals("Linux")) {
 
-            try {
-                final var p = Runtime.getRuntime()
-                                     .exec(new String[]{"xdg-open", url});
-                p.waitFor();
-            } catch (final InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+
+            Runtime.getRuntime()
+                   .exec(new String[]{"xdg-open", url});
+
+
         } else {
             throw new UnsupportedOperationException("Can not open browser on this platform");
         }

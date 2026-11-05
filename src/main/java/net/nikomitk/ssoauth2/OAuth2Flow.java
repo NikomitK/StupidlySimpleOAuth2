@@ -82,21 +82,23 @@ public abstract class OAuth2Flow {
 
     protected void transitionTo(final OAuth2FlowState newState) throws OAuth2FlowInvalidTransitionException {
 
-        if (state != null && !state.getPossibleNextStates()
-                                   .contains(newState.getClass())) {
-            throw new OAuth2FlowInvalidTransitionException("Invalid transition from " + state.getClass()
-                                                                                             .getSimpleName() + " to " + newState.getClass()
-                                                                                                                                 .getSimpleName());
-        }
+        synchronized (lock) {
+            if (state != null && !state.getPossibleNextStates()
+                                       .contains(newState.getClass())) {
+                throw new OAuth2FlowInvalidTransitionException("Invalid transition from " + state.getClass()
+                                                                                                 .getSimpleName() + " to " + newState.getClass()
+                                                                                                                                     .getSimpleName());
+            }
 
-        final OAuth2FlowState previousState = state;
-        state = newState;
+            final OAuth2FlowState previousState = state;
+            state = newState;
 
-        if (previousState instanceof final ClosableState closableState) {
-            closableState.close();
-        }
-        if (newState instanceof final StartableState startableState) {
-            startableState.start();
+            if (previousState instanceof final ClosableState closableState) {
+                closableState.close();
+            }
+            if (newState instanceof final StartableState startableState) {
+                startableState.start();
+            }
         }
     }
 

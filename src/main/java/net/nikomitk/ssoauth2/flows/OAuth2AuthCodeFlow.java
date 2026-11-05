@@ -157,7 +157,10 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
                     }
 
                     return this;
-                } catch (final IOException | InterruptedException e) {
+                } catch (final IOException e) {
+                    transitionTo(new AuthCodeFlowState.Initial());
+                    throw new RuntimeException(e);
+                } catch (final InterruptedException e) {
                     transitionTo(new AuthCodeFlowState.Initial());
                     throw new RuntimeException(e);
                 } catch (final OAuth2RequestException e) {
@@ -188,8 +191,14 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
                     }
                     transitionTo(new AuthCodeFlowState.RefreshTokenPresent(refreshToken, new OAuth2AccessToken(tokenResponse)));
 
-                } catch (final IOException | InterruptedException e) {
+                } catch (final IOException e) {
                     throw new RuntimeException(e);
+                } catch (final InterruptedException e) {
+                    Thread.currentThread()
+                          .interrupt();
+                    throw new RuntimeException(e);
+                } catch (final OAuth2RequestException e) {
+                    throw e;
                 }
 
 
@@ -387,8 +396,9 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
                     final var t = timeout;
                     if (t != null)
                         t.cancel(false);
-                    server.stop(0);
                     countDownLatch.countDown();
+
+                    server.stop(0);
                 }
             }
 

@@ -84,7 +84,11 @@ public class OAuth2Endpoint {
             }
             return new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
                                      .readValue(response.body(), OAuth2Endpoint.class);
-        } catch (final IOException | InterruptedException e) {
+        } catch (final IOException e) {
+            throw new RuntimeException(e);
+        } catch (final InterruptedException e) {
+            Thread.currentThread()
+                  .interrupt();
             throw new RuntimeException(e);
         }
     }

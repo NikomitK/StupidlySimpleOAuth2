@@ -79,8 +79,14 @@ public class OAuth2UserPasswordFlow extends OAuth2Flow {
             final var response = client.send(this.httpRequest, HttpResponse.BodyHandlers.ofString());
             OAuth2RequestException.check(response);
             lastOAuth2TokenResponse = objectMapper.readValue(response.body(), OAuth2TokenResponse.class);
-        } catch (final IOException | InterruptedException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(e);
+        } catch (final InterruptedException e) {
+            Thread.currentThread()
+                  .interrupt();
+            throw new RuntimeException(e);
+        } catch (final OAuth2RequestException e) {
+            throw e;
         }
         return this;
     }
