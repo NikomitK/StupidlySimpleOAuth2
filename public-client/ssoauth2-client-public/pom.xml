@@ -11,6 +11,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
+    <description>OAuth2 flows for public clients</description>
     <artifactId>ssoauth2-client-public</artifactId>
 
     <properties>
@@ -24,12 +25,6 @@
             <groupId>net.nikomitk.ssoauth2</groupId>
             <artifactId>ssoauth2-client-core</artifactId>
             <version>0.3-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>1.18.48</version>
-            <optional>true</optional>
         </dependency>
     </dependencies>
 </project>
