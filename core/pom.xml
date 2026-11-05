@@ -5,12 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>net.nikomitk</groupId>
-    <artifactId>ssoauth2-client</artifactId>
-    <version>0.2</version>
+    <artifactId>ssoauth2-client-core</artifactId>
+    <version>0.3-snapshot</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Stupidly Simple OAuth2 client implementation for local jvm apps.</description>
-    <url>https://codeberg.org/nikomitk/MORFS</url>
+    <url>https://codeberg.org/nikomitk/StupidlySimpleOAuth2</url>
 
     <licenses>
         <license>

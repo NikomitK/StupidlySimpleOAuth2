@@ -6,7 +6,7 @@
 
     <groupId>net.nikomitk.scripts</groupId>
     <artifactId>ssoauth2-client-public</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.3-SNAPSHOT</version>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -18,7 +18,7 @@
         <dependency>
             <groupId>net.nikomitk</groupId>
             <artifactId>ssoauth2-client</artifactId>
-            <version>0.2</version>
+            <version>0.3-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
