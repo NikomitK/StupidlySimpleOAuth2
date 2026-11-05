@@ -13,4 +13,5 @@ module net.nikomitk.ssoauth2 {
     exports net.nikomitk.ssoauth2.security;
     exports net.nikomitk.ssoauth2.exception;
     exports net.nikomitk.ssoauth2.states;
+    exports net.nikomitk.ssoauth2.flows.types;
 }

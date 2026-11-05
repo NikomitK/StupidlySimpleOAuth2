@@ -39,6 +39,7 @@ public class OAuth2BrowserFlow extends OAuth2AuthCodeFlow {
         try {
             Util.openBrowser(getAuthUri());
         } catch (final UnsupportedOperationException | IOException e) {
+            reset();
             throw new RuntimeException(e);
         }
         return this;

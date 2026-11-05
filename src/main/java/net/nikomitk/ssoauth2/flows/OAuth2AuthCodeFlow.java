@@ -9,6 +9,7 @@ import net.nikomitk.ssoauth2.OAuth2Flow;
 import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
 import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
+import net.nikomitk.ssoauth2.exception.OAuth2FlowInterruptedException;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowWrongStateException;
 import net.nikomitk.ssoauth2.exception.OAuth2RequestException;
 import net.nikomitk.ssoauth2.flows.types.ResettableFlow;
@@ -29,8 +30,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.MessageDigest;
 import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -53,8 +54,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
      * @param clientID          the OAuth2 clientID of your public OAuth2 client
      * @param scope             space separated strings, which should be requested from the OAuth2 provider. Example:
      *                          "string1 string2 string3"
-     * @param pkce              the {@link PKCE} instance to use for the OAuth2 flow. If it is null, the flow does
-     *                          not use PKCE. This is not recommended.
+     * @param pkce              the {@link PKCE} instance to use for the OAuth2 flow.
      */
     public OAuth2AuthCodeFlow(final String wellKnownEndpoint, final String clientID, final String scope, final PKCE pkce) {
 
@@ -73,10 +73,9 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
 
     private OAuth2AuthCodeFlow(final Configuration configuration, final Object lock) {
 
-        super(lock);
+        super(lock, new AuthCodeFlowState.Initial());
         this.lock = lock;
         this.configuration = configuration;
-        transitionTo(new AuthCodeFlowState.Initial());
     }
 
     /**
@@ -119,7 +118,12 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
         if (getState() instanceof final AuthCodeFlowState.AwaitingAuthCode awaitingAuthCode) {
             try {
                 awaitingAuthCode.waitUntilFinished();
-            } catch (final ExecutionException | InterruptedException e) {
+                if (getState() instanceof AuthCodeFlowState.Initial) {
+                    throw new OAuth2FlowInterruptedException("Authorization timed out or was cancelled");
+                }
+            } catch (final InterruptedException e) {
+                Thread.currentThread()
+                      .interrupt();
                 throw new RuntimeException(e);
             }
         }
@@ -144,7 +148,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
 
                 try {
 
-                    final OAuth2TokenResponse tokenResponse = requestToken(request, configuration, objectMapper);
+                    final OAuth2TokenResponse tokenResponse = requestToken(request, objectMapper);
 
                     if (tokenResponse.getRefreshToken() != null) {
                         transitionTo(new AuthCodeFlowState.RefreshTokenPresent(tokenResponse.getRefreshToken(), new OAuth2AccessToken(tokenResponse)));
@@ -153,9 +157,12 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
                     }
 
                     return this;
-                } catch (final IOException | OAuth2RequestException | InterruptedException e) {
+                } catch (final IOException | InterruptedException e) {
                     transitionTo(new AuthCodeFlowState.Initial());
                     throw new RuntimeException(e);
+                } catch (final OAuth2RequestException e) {
+                    transitionTo(new AuthCodeFlowState.Initial());
+                    throw e;
                 }
 
             } else {
@@ -172,7 +179,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
 
                 final HttpRequest request = prepareRefreshRequest(refreshTokenPresent, configuration);
                 try {
-                    final OAuth2TokenResponse tokenResponse = requestToken(request, configuration, objectMapper);
+                    final OAuth2TokenResponse tokenResponse = requestToken(request, objectMapper);
 
 
                     String refreshToken = tokenResponse.getRefreshToken();
@@ -199,7 +206,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
         final String body = HttpFormBodyBuilder.newBuilder()
                                                .addFormData("grant_type", "refresh_token")
                                                .addFormData("refresh_token", refreshTokenPresent.refreshToken())
-                                               .addFormData("scope", configuration.scope())
+                                               .addNullableFormData("scope", configuration.scope())
                                                .addFormData("client_id", configuration.clientID())
                                                .build();
 
@@ -223,7 +230,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
 
     }
 
-    private static OAuth2TokenResponse requestToken(final HttpRequest request, final Configuration configuration, final ObjectMapper objectMapper) throws IOException, InterruptedException, OAuth2RequestException {
+    private static OAuth2TokenResponse requestToken(final HttpRequest request, final ObjectMapper objectMapper) throws IOException, InterruptedException, OAuth2RequestException {
 
         try (final HttpClient client = HttpClient.newBuilder()
                                                  .connectTimeout(Duration.ofSeconds(30))
@@ -283,7 +290,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
                                              .addQueryParameter("response_type", "code")
                                              .addQueryParameter("client_id", this.configuration.clientID())
                                              .addQueryParameter("redirect_uri", redirectUri)
-                                             .addQueryParameter("scope", this.configuration.scope())
+                                             .addNullableQueryParameter("scope", this.configuration.scope())
                                              .addQueryParameter("state", stateParam)
                                              .addQueryParameter("code_challenge", this.configuration.pkce()
                                                                                                     .generateCodeChallenge(codeVerifier))
@@ -312,7 +319,6 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
                     sendResponse(exchange, 500, "An error occurred. You can now close this window.");
                     transitionTo(new AuthCodeFlowState.Initial());
                 }
-                awaitingAuthCode.close();
 
             } else {
                 sendResponse(exchange, 500, "The current state is not AwaitingAuthCode. You can now close this window.");
@@ -332,6 +338,12 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
 
         record Initial() implements AuthCodeFlowState {
 
+            @Override
+            public Set<Class<? extends OAuth2FlowState>> getPossibleNextStates() {
+
+                return Set.of(Initial.class, AwaitingAuthCode.class);
+            }
+
         }
 
         final class AwaitingAuthCode implements AuthCodeFlowState, ClosableState, ExpiringState {
@@ -345,7 +357,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
             private final String codeVerifier;
             @Getter
             private final String userUri;
-            private final CompletableFuture<?> finishHandle;
+            private final CountDownLatch countDownLatch;
 
             private final AtomicBoolean closed = new AtomicBoolean(false);
             private volatile ScheduledFuture<?> timeout;
@@ -357,7 +369,7 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
                 this.stateParam = stateParam;
                 this.codeVerifier = codeVerifier;
                 this.userUri = userUri;
-                finishHandle = new CompletableFuture<>();
+                countDownLatch = new CountDownLatch(1);
             }
 
             @Override
@@ -376,18 +388,30 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
                     if (t != null)
                         t.cancel(false);
                     server.stop(0);
-                    finishHandle.complete(null);
+                    countDownLatch.countDown();
                 }
             }
 
-            public void waitUntilFinished() throws ExecutionException, InterruptedException {
+            public void waitUntilFinished() throws InterruptedException {
 
-                finishHandle.get();
+                countDownLatch.await();
+            }
+
+            @Override
+            public Set<Class<? extends OAuth2FlowState>> getPossibleNextStates() {
+
+                return Set.of(Initial.class, AuthCodePresent.class);
             }
 
         }
 
         record AuthCodePresent(String authCode, String redirectUri, String codeVerifier) implements AuthCodeFlowState {
+
+            @Override
+            public Set<Class<? extends OAuth2FlowState>> getPossibleNextStates() {
+
+                return Set.of(Initial.class, AccessTokenPresent.class, RefreshTokenPresent.class);
+            }
 
         }
 
@@ -397,6 +421,12 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
             public OAuth2AccessToken getAccessToken() {
 
                 return accessToken;
+            }
+
+            @Override
+            public Set<Class<? extends OAuth2FlowState>> getPossibleNextStates() {
+
+                return Set.of(Initial.class);
             }
 
         }
@@ -410,11 +440,18 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
                 return accessToken;
             }
 
+            @Override
+            public Set<Class<? extends OAuth2FlowState>> getPossibleNextStates() {
+
+                return Set.of(Initial.class, RefreshTokenPresent.class);
+            }
+
         }
 
     }
 
-    public record Configuration(OAuth2Endpoint endpoint, String clientID, String scope, @NonNull PKCE pkce) {
+    public record Configuration(OAuth2Endpoint endpoint, @NonNull String clientID, String scope,
+            @NonNull PKCE pkce) {
 
         public Configuration(final String wellKnownEndpoint, final String clientID, final String scope, final PKCE pkce) {
 

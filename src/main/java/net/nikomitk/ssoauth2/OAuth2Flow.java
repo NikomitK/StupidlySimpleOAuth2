@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
+import net.nikomitk.ssoauth2.exception.OAuth2FlowInvalidTransitionException;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowNotReadyException;
 import net.nikomitk.ssoauth2.states.ClosableState;
 import net.nikomitk.ssoauth2.states.ExpiringState;
@@ -33,10 +34,16 @@ public abstract class OAuth2Flow {
     /**
      * Initializes common attributes like the ObjectMapper and OAuth2TokenResponse
      */
-    protected OAuth2Flow(final Object lock) {
+    protected OAuth2Flow(final Object lock, final OAuth2FlowState initialState) {
 
         this.lock = lock;
         objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        this.state = initialState;
+    }
+
+    protected OAuth2Flow(final Object lock) {
+
+        this(lock, null);
     }
 
     /**
@@ -73,10 +80,18 @@ public abstract class OAuth2Flow {
     }
 
 
-    protected void transitionTo(final OAuth2FlowState newState) {
+    protected void transitionTo(final OAuth2FlowState newState) throws OAuth2FlowInvalidTransitionException {
+
+        if (state != null && !state.getPossibleNextStates()
+                                   .contains(newState.getClass())) {
+            throw new OAuth2FlowInvalidTransitionException("Invalid transition from " + state.getClass()
+                                                                                             .getSimpleName() + " to " + newState.getClass()
+                                                                                                                                 .getSimpleName());
+        }
 
         final OAuth2FlowState previousState = state;
         state = newState;
+
         if (previousState instanceof final ClosableState closableState) {
             closableState.close();
         }
@@ -85,7 +100,7 @@ public abstract class OAuth2Flow {
         }
     }
 
-    protected void transitionWithTimeout(final ExpiringState newState, final Duration delay, final OAuth2FlowState timeoutState) {
+    protected void transitionWithTimeout(final ExpiringState newState, final Duration delay, final OAuth2FlowState timeoutState) throws OAuth2FlowInvalidTransitionException {
 
         transitionTo(newState);
         newState.setTimeout(expireAfter(delay, timeoutState));

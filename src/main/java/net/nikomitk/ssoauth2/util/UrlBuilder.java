@@ -29,6 +29,14 @@ public class UrlBuilder {
         return this;
     }
 
+    public UrlBuilder addNullableQueryParameter(final String key, final String value) {
+
+        if (value != null) {
+            return addQueryParameter(key, value);
+        }
+        return this;
+    }
+
     public String build() {
 
         if (!query.isEmpty() && query.charAt(query.length() - 1) == '&') {

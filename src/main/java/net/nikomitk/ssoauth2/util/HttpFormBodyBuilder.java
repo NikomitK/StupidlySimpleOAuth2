@@ -27,6 +27,14 @@ public class HttpFormBodyBuilder {
         return this;
     }
 
+    public HttpFormBodyBuilder addNullableFormData(final String key, final String value) {
+
+        if (value != null) {
+            return addFormData(key, value);
+        }
+        return this;
+    }
+
     public String build() {
 
         final StringBuilder builder = new StringBuilder();

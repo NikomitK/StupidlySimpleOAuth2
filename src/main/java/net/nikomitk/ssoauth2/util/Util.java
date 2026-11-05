@@ -67,7 +67,7 @@ public class Util {
                 if (parts.length < 2) {
                     return "";
                 }
-                return param.split("=")[1];
+                return parts[1];
             }
         }
         return null;
