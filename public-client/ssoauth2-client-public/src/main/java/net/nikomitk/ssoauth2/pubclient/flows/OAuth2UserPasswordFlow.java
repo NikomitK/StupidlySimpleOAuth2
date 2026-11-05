@@ -1,9 +1,11 @@
 package net.nikomitk.ssoauth2.pubclient.flows;
 
-import net.nikomitk.ssoauth2.OAuth2Flow;
+import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
 import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
 import net.nikomitk.ssoauth2.exception.OAuth2RequestException;
+import net.nikomitk.ssoauth2.flows.OAuth2FlowBase;
+import net.nikomitk.ssoauth2.flows.types.OAuth2Flow;
 import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
 
 import java.io.IOException;
@@ -16,7 +18,7 @@ import java.net.http.HttpResponse;
  * Class encapsulating authorization using the Resource Owner Password Credentials Grant described in section 4.3 of RFC6749.
  */
 @SuppressWarnings("unused")
-public class OAuth2UserPasswordFlow extends OAuth2Flow {
+public class OAuth2UserPasswordFlow extends OAuth2FlowBase {
 
     private final OAuth2Endpoint endpoint;
     private final String clientID;
@@ -24,6 +26,7 @@ public class OAuth2UserPasswordFlow extends OAuth2Flow {
     private final String password;
     private final String scope;
     private HttpRequest httpRequest;
+    private OAuth2AccessToken lastOAuth2TokenResponse;
 
     /**
      * Creates an instance of the OAuth2 <a href="https://www.rfc-editor.org/info/rfc6749/#section-4.3">Resource Owner Password Credentials flow</a>. This <a href="https://www.rfc-editor.org/info/rfc9700/#section-2.4">should not be used</a> for production purposes.
@@ -78,7 +81,8 @@ public class OAuth2UserPasswordFlow extends OAuth2Flow {
         try (final HttpClient client = HttpClient.newHttpClient()) {
             final var response = client.send(this.httpRequest, HttpResponse.BodyHandlers.ofString());
             OAuth2RequestException.check(response);
-            lastOAuth2TokenResponse = objectMapper.readValue(response.body(), OAuth2TokenResponse.class);
+            var tokenResponse = objectMapper.readValue(response.body(), OAuth2TokenResponse.class);
+            lastOAuth2TokenResponse = new OAuth2AccessToken(tokenResponse);
         } catch (final IOException e) {
             throw new RuntimeException(e);
         } catch (final InterruptedException e) {
@@ -95,6 +99,12 @@ public class OAuth2UserPasswordFlow extends OAuth2Flow {
     public OAuth2Flow refreshAccessToken() {
 
         return this.requestAccessToken();
+    }
+
+    @Override
+    public OAuth2AccessToken getAccessToken() {
+
+        return lastOAuth2TokenResponse;
     }
 
 }

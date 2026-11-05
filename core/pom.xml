@@ -4,9 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>net.nikomitk</groupId>
+    <parent>
+        <groupId>net.nikomitk.ssoauth2</groupId>
+        <artifactId>ssoauth2-parent</artifactId>
+        <version>0.3-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
     <artifactId>ssoauth2-client-core</artifactId>
-    <version>0.3-snapshot</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Stupidly Simple OAuth2 client implementation for local jvm apps.</description>
@@ -62,87 +67,6 @@
             <optional>true</optional>
         </dependency>
     </dependencies>
-
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.16.0</version>
-                <configuration>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                            <version>1.18.48</version>
-                        </path>
-                    </annotationProcessorPaths>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>com.github.spotbugs</groupId>
-                <artifactId>spotbugs-maven-plugin</artifactId>
-                <version>4.10.5.0</version>
-                <configuration>
-                    <excludeFilterFile>config/spotbugs-exclusion.xml</excludeFilterFile>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>check</id>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                        <phase>verify</phase>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>com.diffplug.spotless</groupId>
-                <artifactId>spotless-maven-plugin</artifactId>
-                <version>3.11.0</version>
-                <executions>
-                    <execution>
-                        <id>apply</id>
-                        <goals>
-                            <goal>apply</goal>
-                        </goals>
-                        <phase>verify</phase>
-                    </execution>
-                </executions>
-                <configuration>
-                    <encoding>UTF-8</encoding>
-                    <lineEndings>UNIX</lineEndings>
-                    <java>
-                        <includes>
-                            <include>src/main/java/**/*.java</include>
-                            <include>src/test/java/**/*.java</include>
-                        </includes>
-                        <excludes>
-                            <!-- the Eclipse formatter puts the module annotation on the same line as "module" -->
-                            <exclude>**/module-info.java</exclude>
-                        </excludes>
-                        <!-- Order: everything else, blank line, javax + java, blank line, static (IntelliJ layout) -->
-                        <importOrder>
-                            <order>,javax|java,\#</order>
-                        </importOrder>
-                        <removeUnusedImports/>
-                        <eclipse>
-                            <file>${project.basedir}/config/spotless/eclipse-java-formatter.xml</file>
-                        </eclipse>
-                        <trimTrailingWhitespace/>
-                    </java>
-                    <markdown>
-                        <includes>
-                            <include>*.md</include>
-                            <include>RFCs/*.md</include>
-                        </includes>
-                        <flexmark/>
-                    </markdown>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 
     <profiles>
         <profile>

@@ -5,13 +5,13 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import lombok.Getter;
 import lombok.NonNull;
-import net.nikomitk.ssoauth2.OAuth2Flow;
 import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
 import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowInterruptedException;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowWrongStateException;
 import net.nikomitk.ssoauth2.exception.OAuth2RequestException;
+import net.nikomitk.ssoauth2.flows.OAuth2FlowBase;
 import net.nikomitk.ssoauth2.flows.types.ResettableFlow;
 import net.nikomitk.ssoauth2.security.PKCE;
 import net.nikomitk.ssoauth2.states.AuthorizedState;
@@ -35,13 +35,12 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static net.nikomitk.ssoauth2.util.Util.sendResponse;
 
 /**
  * Class encapsulating the OAuth2 Authorization Code flow.
  */
 @SuppressWarnings({"unused", "UnusedReturnValue"})
-public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
+public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow {
 
     private final Configuration configuration;
     private final Object lock;

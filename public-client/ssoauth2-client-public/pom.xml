@@ -4,9 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>net.nikomitk.scripts</groupId>
+    <parent>
+        <groupId>net.nikomitk.ssoauth2</groupId>
+        <artifactId>ssoauth2-parent</artifactId>
+        <version>0.3-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
     <artifactId>ssoauth2-client-public</artifactId>
-    <version>0.3-SNAPSHOT</version>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -16,8 +21,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>net.nikomitk</groupId>
-            <artifactId>ssoauth2-client</artifactId>
+            <groupId>net.nikomitk.ssoauth2</groupId>
+            <artifactId>ssoauth2-client-core</artifactId>
             <version>0.3-SNAPSHOT</version>
         </dependency>
         <dependency>

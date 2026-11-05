@@ -1,5 +1,6 @@
 package net.nikomitk.ssoauth2.pubclient.simple.flows;
 
+import net.nikomitk.ssoauth2.pubclient.flows.OAuth2AuthCodeFlow;
 import net.nikomitk.ssoauth2.security.PKCE;
 import net.nikomitk.ssoauth2.util.Util;
 

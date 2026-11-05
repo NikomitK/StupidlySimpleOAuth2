@@ -7,7 +7,6 @@ module net.nikomitk.ssoauth2 {
     requires static lombok;
     requires java.desktop;
 
-    exports net.nikomitk.ssoauth2;
     exports net.nikomitk.ssoauth2.dto;
     exports net.nikomitk.ssoauth2.security;
     exports net.nikomitk.ssoauth2.exception;
