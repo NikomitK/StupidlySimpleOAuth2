@@ -4,6 +4,9 @@ target/
 !**/src/test/**/target/
 .kotlin
 
+### flatten-maven-plugin ###
+.flattened-pom.xml
+
 ### IntelliJ IDEA ###
 .idea
 
