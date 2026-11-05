@@ -27,7 +27,7 @@ That's why I created my own.
 
 ```java
 import net.nikomitk.ssoauth2.OAuth2Flow;
-import net.nikomitk.ssoauth2.flows.OAuth2BrowserFlow;
+import net.nikomitk.ssoauth2.pubclient.simple.flows.OAuth2BrowserFlow;
 import net.nikomitk.ssoauth2.security.PKCE;
 
 OAuth2Flow flow = new OAuth2BrowserFlow("https://sso.example.com/.well-known/openid-configuration", "client-id", "openid profile email", PKCE.S256);

@@ -7,7 +7,7 @@
         is not exposed to callers.
     -->
     <Match>
-        <Class name="net.nikomitk.ssoauth2.flows.OAuth2AuthCodeFlow$AuthCodeFlowState$AwaitingAuthCode"/>
+        <Class name="net.nikomitk.ssoauth2.pubclient.flows.OAuth2AuthCodeFlow$AuthCodeFlowState$AwaitingAuthCode"/>
         <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
     </Match>
 

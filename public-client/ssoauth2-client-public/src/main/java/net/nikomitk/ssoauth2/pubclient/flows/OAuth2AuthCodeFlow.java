@@ -1,4 +1,4 @@
-package net.nikomitk.ssoauth2.flows;
+package net.nikomitk.ssoauth2.pubclient.flows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
@@ -319,18 +319,18 @@ public class OAuth2AuthCodeFlow extends OAuth2Flow implements ResettableFlow {
 
                 if (stateParam == null || !MessageDigest.isEqual(awaitingAuthCode.getStateParam()
                                                                                  .getBytes(), stateParam.getBytes())) {
-                    sendResponse(exchange, 400, "State mismatch. This might be a CSRF attack. You can now close this window.");
+                    Util.sendResponse(exchange, 400, "State mismatch. This might be a CSRF attack. You can now close this window.");
                     return;
                 } else if (code != null && !code.isBlank()) {
-                    sendResponse(exchange, 200, "Authentication successful. You can now close this window.");
+                    Util.sendResponse(exchange, 200, "Authentication successful. You can now close this window.");
                     transitionTo(new AuthCodeFlowState.AuthCodePresent(code, awaitingAuthCode.getRedirectUri(), awaitingAuthCode.getCodeVerifier()));
                 } else {
-                    sendResponse(exchange, 500, "An error occurred. You can now close this window.");
+                    Util.sendResponse(exchange, 500, "An error occurred. You can now close this window.");
                     transitionTo(new AuthCodeFlowState.Initial());
                 }
 
             } else {
-                sendResponse(exchange, 500, "The current state is not AwaitingAuthCode. You can now close this window.");
+                Util.sendResponse(exchange, 500, "The current state is not AwaitingAuthCode. You can now close this window.");
             }
         }
     }
