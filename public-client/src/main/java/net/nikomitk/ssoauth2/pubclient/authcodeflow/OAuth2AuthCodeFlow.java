@@ -1,32 +1,29 @@
 package net.nikomitk.ssoauth2.pubclient.authcodeflow;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
-import lombok.NonNull;
 import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
-import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowInterruptedException;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowWrongStateException;
 import net.nikomitk.ssoauth2.exception.OAuth2RequestException;
 import net.nikomitk.ssoauth2.flows.OAuth2FlowBase;
 import net.nikomitk.ssoauth2.flows.types.ResettableFlow;
+import net.nikomitk.ssoauth2.pubclient.PubClientUtil;
 import net.nikomitk.ssoauth2.pubclient.authcodeflow.states.*;
 import net.nikomitk.ssoauth2.security.PKCE;
 import net.nikomitk.ssoauth2.states.AuthorizedState;
 import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
 import net.nikomitk.ssoauth2.util.UrlBuilder;
-import net.nikomitk.ssoauth2.util.Util;
+import net.nikomitk.ssoauth2.util.CoreUtil;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
-import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.security.MessageDigest;
 import java.time.Duration;
+import java.util.Optional;
 
 
 /**
@@ -35,7 +32,7 @@ import java.time.Duration;
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow {
 
-    private final Configuration configuration;
+    private final AuthCodeFlowConfiguration configuration;
     private final Object lock;
 
     /**
@@ -50,7 +47,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
      */
     public OAuth2AuthCodeFlow(final String wellKnownEndpoint, final String clientID, final String scope, final PKCE pkce) {
 
-        this(new Configuration(wellKnownEndpoint, clientID, scope, pkce));
+        this(new AuthCodeFlowConfiguration(wellKnownEndpoint, clientID, scope, pkce));
     }
 
     /**
@@ -58,12 +55,12 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
      *
      * @param configuration an initialized configuration object
      */
-    public OAuth2AuthCodeFlow(final Configuration configuration) {
+    public OAuth2AuthCodeFlow(final AuthCodeFlowConfiguration configuration) {
 
         this(configuration, new Object());
     }
 
-    private OAuth2AuthCodeFlow(final Configuration configuration, final Object lock) {
+    private OAuth2AuthCodeFlow(final AuthCodeFlowConfiguration configuration, final Object lock) {
 
         super(lock, new Initial());
         this.lock = lock;
@@ -132,7 +129,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                                                        .build();
 
                 final HttpRequest request = HttpRequest.newBuilder()
-                                                       .uri(URI.create(this.configuration.endpoint.getTokenEndpoint()))
+                                                       .uri(URI.create(this.configuration.endpoint().getTokenEndpoint()))
                                                        .header("Content-Type", "application/x-www-form-urlencoded")
                                                        .method("POST", HttpRequest.BodyPublishers.ofString(body))
                                                        .timeout(Duration.ofSeconds(30))
@@ -140,7 +137,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
 
                 try {
 
-                    final OAuth2TokenResponse tokenResponse = requestToken(request, objectMapper);
+                    final OAuth2TokenResponse tokenResponse = CoreUtil.requestToken(null, request, objectMapper);
 
                     if (tokenResponse.getRefreshToken() != null) {
                         transitionTo(new RefreshTokenPresent(tokenResponse.getRefreshToken(), new OAuth2AccessToken(tokenResponse)));
@@ -154,6 +151,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                     throw new RuntimeException(e);
                 } catch (final InterruptedException e) {
                     transitionTo(new Initial());
+                    Thread.currentThread().interrupt();
                     throw new RuntimeException(e);
                 } catch (final OAuth2RequestException e) {
                     transitionTo(new Initial());
@@ -172,15 +170,13 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
         synchronized (lock) {
             if (getState() instanceof final RefreshTokenPresent refreshTokenPresent) {
 
-                final HttpRequest request = prepareRefreshRequest(refreshTokenPresent, configuration);
+                final HttpRequest request = PubClientUtil.prepareRefreshRequest(refreshTokenPresent, configuration);
                 try {
-                    final OAuth2TokenResponse tokenResponse = requestToken(request, objectMapper);
+                    final OAuth2TokenResponse tokenResponse = CoreUtil.requestToken(null, request, objectMapper);
 
 
-                    String refreshToken = tokenResponse.getRefreshToken();
-                    if (refreshToken == null) {
-                        refreshToken = refreshTokenPresent.refreshToken();
-                    }
+                    final String refreshToken = Optional.of(tokenResponse.getRefreshToken()).orElse(refreshTokenPresent.refreshToken());
+
                     transitionTo(new RefreshTokenPresent(refreshToken, new OAuth2AccessToken(tokenResponse)));
 
                 } catch (final IOException e) {
@@ -189,8 +185,6 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                     Thread.currentThread()
                           .interrupt();
                     throw new RuntimeException(e);
-                } catch (final OAuth2RequestException e) {
-                    throw e;
                 }
 
 
@@ -200,23 +194,6 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
             }
         }
         return this;
-    }
-
-    private static HttpRequest prepareRefreshRequest(final RefreshTokenPresent refreshTokenPresent, final Configuration configuration) {
-
-        final String body = HttpFormBodyBuilder.newBuilder()
-                                               .addFormData("grant_type", "refresh_token")
-                                               .addFormData("refresh_token", refreshTokenPresent.refreshToken())
-                                               .addNullableFormData("scope", configuration.scope())
-                                               .addFormData("client_id", configuration.clientID())
-                                               .build();
-
-        return HttpRequest.newBuilder()
-                          .uri(URI.create(configuration.endpoint.getTokenEndpoint()))
-                          .header("Content-Type", "application/x-www-form-urlencoded")
-                          .method("POST", HttpRequest.BodyPublishers.ofString(body))
-                          .timeout(Duration.ofSeconds(30))
-                          .build();
     }
 
     @Override
@@ -229,17 +206,6 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                                                               .getSimpleName(), new String[]{"AuthorizedState"});
         }
 
-    }
-
-    private static OAuth2TokenResponse requestToken(final HttpRequest request, final ObjectMapper objectMapper) throws IOException, InterruptedException, OAuth2RequestException {
-
-        try (final HttpClient client = HttpClient.newBuilder()
-                                                 .connectTimeout(Duration.ofSeconds(30))
-                                                 .build()) {
-            final var response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            OAuth2RequestException.check(response);
-            return objectMapper.readValue(response.body(), OAuth2TokenResponse.class);
-        }
     }
 
     /**
@@ -261,14 +227,14 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
             final HttpServer server;
 
             try {
-                server = Util.createHttpServer(port);
+                server = CoreUtil.createHttpServer(port);
             } catch (final IOException e) {
                 throw new RuntimeException(e);
             }
 
             final var redirectUri = buildRedirectUri(server.getAddress());
             final var codeVerifier = PKCE.generateCodeVerifier(32);
-            final var stateParam = Util.generateRandomString(32);
+            final var stateParam = CoreUtil.generateRandomString(32);
             final var userUri = buildUrl(redirectUri, codeVerifier, stateParam);
             server.createContext("/oauth2/redirect", this::redirectExchangeHandler);
             transitionWithTimeout(new AwaitingAuthCode(server, redirectUri, stateParam, codeVerifier, userUri), Duration.ofSeconds(120), new Initial());
@@ -306,23 +272,22 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
         synchronized (lock) {
             if (getState() instanceof final AwaitingAuthCode awaitingAuthCode) {
 
-                final String code = Util.getQueryParameter(exchange, "code");
-                final String stateParam = Util.getQueryParameter(exchange, "state");
+                final String code = CoreUtil.getQueryParameter(exchange, "code");
+                final String stateParam = CoreUtil.getQueryParameter(exchange, "state");
 
                 if (stateParam == null || !MessageDigest.isEqual(awaitingAuthCode.getStateParam()
                                                                                  .getBytes(), stateParam.getBytes())) {
-                    Util.sendResponse(exchange, 400, "State mismatch. This might be a CSRF attack. You can now close this window.");
-                    return;
+                    CoreUtil.sendResponse(exchange, 400, "State mismatch. This might be a CSRF attack. You can now close this window.");
                 } else if (code != null && !code.isBlank()) {
-                    Util.sendResponse(exchange, 200, "Authentication successful. You can now close this window.");
+                    CoreUtil.sendResponse(exchange, 200, "Authentication successful. You can now close this window.");
                     transitionTo(new AuthCodePresent(code, awaitingAuthCode.getRedirectUri(), awaitingAuthCode.getCodeVerifier()));
                 } else {
-                    Util.sendResponse(exchange, 500, "An error occurred. You can now close this window.");
+                    CoreUtil.sendResponse(exchange, 500, "An error occurred. You can now close this window.");
                     transitionTo(new Initial());
                 }
 
             } else {
-                Util.sendResponse(exchange, 500, "The current state is not AwaitingAuthCode. You can now close this window.");
+                CoreUtil.sendResponse(exchange, 500, "The current state is not AwaitingAuthCode. You can now close this window.");
             }
         }
     }
@@ -335,15 +300,5 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
         }
     }
 
-
-    public record Configuration(OAuth2Endpoint endpoint, @NonNull String clientID, String scope,
-            @NonNull PKCE pkce) {
-
-        public Configuration(final String wellKnownEndpoint, final String clientID, final String scope, final PKCE pkce) {
-
-            this(Util.queryWellKnownEndpoint(wellKnownEndpoint), clientID, scope, pkce);
-        }
-
-    }
 
 }

@@ -2,7 +2,7 @@ package net.nikomitk.ssoauth2.security;
 
 import lombok.Getter;
 import net.nikomitk.ssoauth2.exception.StandardValidationException;
-import net.nikomitk.ssoauth2.util.Util;
+import net.nikomitk.ssoauth2.util.CoreUtil;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -57,7 +57,7 @@ public enum PKCE {
         if (randomByteCount < 32 || randomByteCount > 95) {
             throw new StandardValidationException(7636, "https://www.rfc-editor.org/info/rfc7636/#section-4.1", "The PKCE code verifier has to be between 43 characters (32 bytes) and 128 characters (95 bytes) of Base64.");
         }
-        return Util.generateRandomString(randomByteCount);
+        return CoreUtil.generateRandomString(randomByteCount);
     }
 
     private static String createS256CodeChallenge(final String codeVerifier) {

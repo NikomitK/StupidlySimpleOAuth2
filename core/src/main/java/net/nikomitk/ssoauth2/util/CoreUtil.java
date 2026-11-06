@@ -4,7 +4,10 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import lombok.NonNull;
 import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
+import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
+import net.nikomitk.ssoauth2.exception.OAuth2RequestException;
 
 import java.awt.*;
 import java.io.IOException;
@@ -14,15 +17,21 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.function.Function;
 
-public class Util {
+public class CoreUtil {
 
     private static final SecureRandom secureRandom = new SecureRandom();
+    private static final HttpClient DEFAULT_HTTP_CLIENT = HttpClient.newBuilder()
+                                                                    .connectTimeout(Duration.ofSeconds(30))
+                                                                    .build();
+    private static final ObjectMapper DEFAULT_OBJECT_MAPPER = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     public static void openBrowser(final String url) throws UnsupportedOperationException, IOException {
 
@@ -148,6 +157,19 @@ public class Util {
         } catch (final URISyntaxException e) {
             return false;
         }
+    }
+
+    public static OAuth2TokenResponse requestToken(HttpClient httpClient, @NonNull final HttpRequest request, ObjectMapper objectMapper) throws IOException, InterruptedException, OAuth2RequestException {
+
+        if (httpClient == null) {
+            httpClient = DEFAULT_HTTP_CLIENT;
+        }
+        if (objectMapper == null) {
+            objectMapper = DEFAULT_OBJECT_MAPPER;
+        }
+        final var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        OAuth2RequestException.check(response);
+        return objectMapper.readValue(response.body(), OAuth2TokenResponse.class);
     }
 
 }

@@ -1,7 +1,7 @@
 package net.nikomitk.ssoauth2.pubclient.authcodeflow;
 
 import net.nikomitk.ssoauth2.security.PKCE;
-import net.nikomitk.ssoauth2.util.Util;
+import net.nikomitk.ssoauth2.util.CoreUtil;
 
 import java.io.IOException;
 
@@ -37,7 +37,7 @@ public class OAuth2BrowserFlow extends OAuth2AuthCodeFlow {
 
         super.startFlow(port);
         try {
-            Util.openBrowser(getAuthUri());
+            CoreUtil.openBrowser(getAuthUri());
         } catch (final UnsupportedOperationException | IOException e) {
             reset();
             throw new RuntimeException(e);

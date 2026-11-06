@@ -8,7 +8,7 @@ import net.nikomitk.ssoauth2.states.ClosableState;
 import net.nikomitk.ssoauth2.states.ExpiringState;
 import net.nikomitk.ssoauth2.states.OAuth2FlowState;
 import net.nikomitk.ssoauth2.states.StartableState;
-import net.nikomitk.ssoauth2.util.Util;
+import net.nikomitk.ssoauth2.util.CoreUtil;
 
 import java.time.Duration;
 import java.util.concurrent.ScheduledExecutorService;
@@ -24,7 +24,7 @@ public abstract class OAuth2FlowBase implements OAuth2Flow {
     protected final ObjectMapper objectMapper;
     private volatile OAuth2FlowState state;
     private final Object lock;
-    private static final ScheduledExecutorService scheduler = Util.createScheduler();
+    private static final ScheduledExecutorService scheduler = CoreUtil.createScheduler();
 
     /**
      * Initializes common attributes like the ObjectMapper and OAuth2TokenResponse

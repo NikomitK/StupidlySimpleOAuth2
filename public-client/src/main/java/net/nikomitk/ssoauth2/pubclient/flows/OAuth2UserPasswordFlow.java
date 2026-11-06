@@ -7,7 +7,7 @@ import net.nikomitk.ssoauth2.exception.OAuth2RequestException;
 import net.nikomitk.ssoauth2.flows.OAuth2FlowBase;
 import net.nikomitk.ssoauth2.flows.types.OAuth2Flow;
 import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
-import net.nikomitk.ssoauth2.util.Util;
+import net.nikomitk.ssoauth2.util.CoreUtil;
 
 import java.io.IOException;
 import java.net.URI;
@@ -44,7 +44,7 @@ public class OAuth2UserPasswordFlow extends OAuth2FlowBase {
     public OAuth2UserPasswordFlow(final String wellKnownEndpoint, final String clientID, final String username, final String password, final String scope) {
 
         super(new Object());
-        this.endpoint = Util.queryWellKnownEndpoint(wellKnownEndpoint);
+        this.endpoint = CoreUtil.queryWellKnownEndpoint(wellKnownEndpoint);
         this.clientID = clientID;
         this.username = username;
         this.password = password;
@@ -82,7 +82,7 @@ public class OAuth2UserPasswordFlow extends OAuth2FlowBase {
         try (final HttpClient client = HttpClient.newHttpClient()) {
             final var response = client.send(this.httpRequest, HttpResponse.BodyHandlers.ofString());
             OAuth2RequestException.check(response);
-            var tokenResponse = objectMapper.readValue(response.body(), OAuth2TokenResponse.class);
+            final var tokenResponse = objectMapper.readValue(response.body(), OAuth2TokenResponse.class);
             lastOAuth2TokenResponse = new OAuth2AccessToken(tokenResponse);
         } catch (final IOException e) {
             throw new RuntimeException(e);
@@ -90,8 +90,6 @@ public class OAuth2UserPasswordFlow extends OAuth2FlowBase {
             Thread.currentThread()
                   .interrupt();
             throw new RuntimeException(e);
-        } catch (final OAuth2RequestException e) {
-            throw e;
         }
         return this;
     }

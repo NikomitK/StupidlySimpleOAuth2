@@ -2,7 +2,7 @@
 
 Legend: `[x]` met · `[~]` partially met · `[ ]` not met · `[-]` not applicable / out of scope (checked against code on `develop`)
 
-Files: `AC` = [OAuth2AuthCodeFlow.java](../src/main/java/net/nikomitk/ssoauth2/flows/OAuth2AuthCodeFlow.java), `Util` = [Util.java](../src/main/java/net/nikomitk/ssoauth2/util/Util.java)
+Files: `AC` = [OAuth2AuthCodeFlow.java](../src/main/java/net/nikomitk/ssoauth2/flows/OAuth2AuthCodeFlow.java), `PubClientUtil` = [Util.java](../src/main/java/net/nikomitk/ssoauth2/util/Util.java)
 
 ## Client type & registration (§8.4, §8.5)
 
