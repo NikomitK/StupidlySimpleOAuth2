@@ -7,6 +7,7 @@ import net.nikomitk.ssoauth2.exception.OAuth2RequestException;
 import net.nikomitk.ssoauth2.flows.OAuth2FlowBase;
 import net.nikomitk.ssoauth2.flows.types.OAuth2Flow;
 import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
+import net.nikomitk.ssoauth2.util.Util;
 
 import java.io.IOException;
 import java.net.URI;
@@ -43,7 +44,7 @@ public class OAuth2UserPasswordFlow extends OAuth2FlowBase {
     public OAuth2UserPasswordFlow(final String wellKnownEndpoint, final String clientID, final String username, final String password, final String scope) {
 
         super(new Object());
-        this.endpoint = OAuth2Endpoint.queryWellKnownEndpoint(wellKnownEndpoint);
+        this.endpoint = Util.queryWellKnownEndpoint(wellKnownEndpoint);
         this.clientID = clientID;
         this.username = username;
         this.password = password;

@@ -42,8 +42,7 @@
 
     <modules>
         <module>core</module>
-        <module>public-client/ssoauth2-client-public</module>
-        <module>public-client/ssoauth2-client-public-simple</module>
+        <module>public-client</module>
     </modules>
 
     <dependencies>

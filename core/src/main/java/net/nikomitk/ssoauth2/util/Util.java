@@ -1,13 +1,19 @@
 package net.nikomitk.ssoauth2.util;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 
 import java.awt.*;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.concurrent.Executors;
@@ -105,6 +111,43 @@ public class Util {
         });
         s.setRemoveOnCancelPolicy(true);
         return s;
+    }
+
+    /**
+     * Creates an OAuth2Endpoint by querying an OAuth2 well known endpoint.
+     * @param wellKnownEndpoint a valid URI to the well known endpoint
+     * @return an initialized instance of OAuth2Endpoint
+     */
+    public static OAuth2Endpoint queryWellKnownEndpoint(final String wellKnownEndpoint) {
+
+        try (final HttpClient client = HttpClient.newHttpClient()) {
+            final HttpRequest request = HttpRequest.newBuilder()
+                                                   .uri(java.net.URI.create(wellKnownEndpoint))
+                                                   .GET()
+                                                   .build();
+            final var response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                throw new RuntimeException("Failed to fetch well-known endpoint: " + response.statusCode());
+            }
+            return new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                                     .readValue(response.body(), OAuth2Endpoint.class);
+        } catch (final IOException e) {
+            throw new RuntimeException(e);
+        } catch (final InterruptedException e) {
+            Thread.currentThread()
+                  .interrupt();
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static boolean isValidUri(final String uri) {
+
+        try {
+            new URI(uri);
+            return true;
+        } catch (final URISyntaxException e) {
+            return false;
+        }
     }
 
 }

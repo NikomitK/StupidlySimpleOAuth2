@@ -1,15 +1,10 @@
 package net.nikomitk.ssoauth2.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.io.IOException;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
 import java.util.List;
 
 /**
@@ -65,32 +60,5 @@ public class OAuth2Endpoint {
     private boolean claimsParameterSupported;
     @JsonProperty("code_challenge_methods_supported")
     private List<String> codeChallengeMethodsSupported;
-
-    /**
-     * Creates an OAuth2Endpoint by querying an OAuth2 well known endpoint.
-     * @param wellKnownEndpoint a valid URI to the well known endpoint
-     * @return an initialized instance of OAuth2Endpoint
-     */
-    public static OAuth2Endpoint queryWellKnownEndpoint(final String wellKnownEndpoint) {
-
-        try (final HttpClient client = HttpClient.newHttpClient()) {
-            final HttpRequest request = HttpRequest.newBuilder()
-                                                   .uri(java.net.URI.create(wellKnownEndpoint))
-                                                   .GET()
-                                                   .build();
-            final var response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                throw new RuntimeException("Failed to fetch well-known endpoint: " + response.statusCode());
-            }
-            return new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                                     .readValue(response.body(), OAuth2Endpoint.class);
-        } catch (final IOException e) {
-            throw new RuntimeException(e);
-        } catch (final InterruptedException e) {
-            Thread.currentThread()
-                  .interrupt();
-            throw new RuntimeException(e);
-        }
-    }
 
 }
