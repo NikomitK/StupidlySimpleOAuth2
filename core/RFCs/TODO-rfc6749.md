@@ -14,9 +14,9 @@ Files: `AC` = [OAuth2AuthCodeFlow.java](../src/main/java/net/nikomitk/ssoauth2/f
 
 ## Endpoints (§3)
 
-- [ ] Authorization endpoint: **retain existing query component** – `UrlBuilder` always appends `"?"` (`UB:14`), producing `…?a=b?response_type=…` if the endpoint already has a query. No fragment check either
+- [ ] Authorization endpoint: **retain existing query component** – `Builder` always appends `"?"` (`UB:14`), producing `…?a=b?response_type=…` if the endpoint already has a query. No fragment check either
 - [x] Token endpoint: used as-is via `URI.create`, nothing appended
-- [~] Form-urlencoded, no duplicate parameters – token requests use `HttpFormBodyBuilder` (map, so unique, UTF-8). `UrlBuilder` does not encode keys and throws `NullPointerException` for a `null` value (e.g. `scope == null`, `UB:22`)
+- [~] Form-urlencoded, no duplicate parameters – token requests use `HttpFormBodyBuilder` (map, so unique, UTF-8). `Builder` does not encode keys and throws `NullPointerException` for a `null` value (e.g. `scope == null`, `UB:22`)
 - [x] Unrecognized parameters ignored – Jackson `FAIL_ON_UNKNOWN_PROPERTIES=false` (`OAuth2Flow:26`); redirect handler only reads `code`
 - [x] Token requests use POST
 - [~] TLS: `java.net.http.HttpClient` validates certificates/host names by default, but **`https` is never enforced** on the authorization/token/well-known endpoints
