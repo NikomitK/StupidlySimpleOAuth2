@@ -25,6 +25,8 @@ import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.Optional;
 
+import static net.nikomitk.ssoauth2.util.CoreUtil.requestBuilder;
+
 
 /**
  * Class encapsulating the OAuth2 Authorization Code flow.
@@ -128,13 +130,11 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                                                        .addFormData("code_verifier", codeVerifier)
                                                        .build();
 
-                final HttpRequest request = HttpRequest.newBuilder()
-                                                       .uri(URI.create(this.configuration.endpoint()
-                                                                                         .getTokenEndpoint()))
-                                                       .header("Content-Type", "application/x-www-form-urlencoded")
-                                                       .method("POST", HttpRequest.BodyPublishers.ofString(body))
-                                                       .timeout(Duration.ofSeconds(30))
-                                                       .build();
+                final HttpRequest request = requestBuilder(URI.create(this.configuration.endpoint()
+                                                                                        .getTokenEndpoint()))
+                                                                                                             .header("Content-Type", "application/x-www-form-urlencoded")
+                                                                                                             .method("POST", HttpRequest.BodyPublishers.ofString(body))
+                                                                                                             .build();
 
                 try {
 

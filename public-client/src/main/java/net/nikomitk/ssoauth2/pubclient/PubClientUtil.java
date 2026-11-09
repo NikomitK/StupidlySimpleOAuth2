@@ -6,7 +6,8 @@ import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
 
 import java.net.URI;
 import java.net.http.HttpRequest;
-import java.time.Duration;
+
+import static net.nikomitk.ssoauth2.util.CoreUtil.requestBuilder;
 
 @UtilityClass
 public class PubClientUtil {
@@ -21,13 +22,11 @@ public class PubClientUtil {
                                                .addFormData("client_id", configuration.clientID())
                                                .build();
 
-        return HttpRequest.newBuilder()
-                          .uri(URI.create(configuration.endpoint()
-                                                       .getTokenEndpoint()))
-                          .header("Content-Type", "application/x-www-form-urlencoded")
-                          .method("POST", HttpRequest.BodyPublishers.ofString(body))
-                          .timeout(Duration.ofSeconds(30))
-                          .build();
+        return requestBuilder(URI.create(configuration.endpoint()
+                                                      .getTokenEndpoint()))
+                                                                           .header("Content-Type", "application/x-www-form-urlencoded")
+                                                                           .method("POST", HttpRequest.BodyPublishers.ofString(body))
+                                                                           .build();
     }
 
 

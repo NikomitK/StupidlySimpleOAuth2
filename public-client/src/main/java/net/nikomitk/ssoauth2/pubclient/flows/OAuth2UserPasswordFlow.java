@@ -12,6 +12,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpRequest;
 
+import static net.nikomitk.ssoauth2.util.CoreUtil.requestBuilder;
+
 /**
  * Class encapsulating authorization using the Resource Owner Password Credentials Grant described in section 4.3 of RFC6749.
  */
@@ -60,12 +62,10 @@ public class OAuth2UserPasswordFlow extends OAuth2FlowBase {
                                                .addFormData("client_id", this.clientID)
                                                .build();
 
-        this.httpRequest = HttpRequest
-                                      .newBuilder()
-                                      .uri(URI.create(endpoint.getTokenEndpoint()))
-                                      .header("Content-Type", "application/x-www-form-urlencoded")
-                                      .method("POST", HttpRequest.BodyPublishers.ofString(body))
-                                      .build();
+        this.httpRequest = requestBuilder(URI.create(endpoint.getTokenEndpoint()))
+                                                                                  .header("Content-Type", "application/x-www-form-urlencoded")
+                                                                                  .method("POST", HttpRequest.BodyPublishers.ofString(body))
+                                                                                  .build();
 
         return this;
     }

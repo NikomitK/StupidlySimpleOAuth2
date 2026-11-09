@@ -57,6 +57,19 @@ public class CoreUtil {
         return new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
+    /**
+     * Creates a request builder with the library's default timeout and User-Agent already set.
+     *
+     * @param uri the URI the request is sent to
+     * @return a request builder to which the method, headers and body can be added
+     */
+    public static HttpRequest.Builder requestBuilder(@NonNull final URI uri) {
+
+        return HttpRequest.newBuilder(uri)
+                          .timeout(DEFAULT_HTTP_TIMEOUT)
+                          .header("User-Agent", DEFAULT_USER_AGENT);
+    }
+
     public static void openBrowser(final String url) throws UnsupportedOperationException, IOException {
 
         final var osName = System.getProperty("os.name");
@@ -136,10 +149,9 @@ public class CoreUtil {
     public static OAuth2Endpoint queryWellKnownEndpoint(@NonNull final HttpClient client, @NonNull final String wellKnownEndpoint, @NonNull final ObjectMapper objectMapper) {
 
         try {
-            final HttpRequest request = HttpRequest.newBuilder()
-                                                   .uri(java.net.URI.create(wellKnownEndpoint))
-                                                   .GET()
-                                                   .build();
+            final HttpRequest request = requestBuilder(URI.create(wellKnownEndpoint))
+                                                                                     .GET()
+                                                                                     .build();
             final var response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
                 throw new RuntimeException("Failed to fetch well-known endpoint: " + response.statusCode());
