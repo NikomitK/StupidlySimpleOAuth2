@@ -22,7 +22,8 @@ public class PubClientUtil {
                                                .build();
 
         return HttpRequest.newBuilder()
-                          .uri(URI.create(configuration.endpoint().getTokenEndpoint()))
+                          .uri(URI.create(configuration.endpoint()
+                                                       .getTokenEndpoint()))
                           .header("Content-Type", "application/x-www-form-urlencoded")
                           .method("POST", HttpRequest.BodyPublishers.ofString(body))
                           .timeout(Duration.ofSeconds(30))

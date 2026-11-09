@@ -6,8 +6,8 @@ import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
 import net.nikomitk.ssoauth2.exception.OAuth2RequestException;
 import net.nikomitk.ssoauth2.flows.OAuth2FlowBase;
 import net.nikomitk.ssoauth2.flows.types.OAuth2Flow;
-import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
 import net.nikomitk.ssoauth2.util.CoreUtil;
+import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
 
 import java.io.IOException;
 import java.net.URI;

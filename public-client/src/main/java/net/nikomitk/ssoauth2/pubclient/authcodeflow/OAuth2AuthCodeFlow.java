@@ -13,9 +13,9 @@ import net.nikomitk.ssoauth2.pubclient.PubClientUtil;
 import net.nikomitk.ssoauth2.pubclient.authcodeflow.states.*;
 import net.nikomitk.ssoauth2.security.PKCE;
 import net.nikomitk.ssoauth2.states.AuthorizedState;
-import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
-import net.nikomitk.ssoauth2.util.UrlBuilder;
 import net.nikomitk.ssoauth2.util.CoreUtil;
+import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
+import net.nikomitk.ssoauth2.util.UrlUtils;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -129,7 +129,8 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                                                        .build();
 
                 final HttpRequest request = HttpRequest.newBuilder()
-                                                       .uri(URI.create(this.configuration.endpoint().getTokenEndpoint()))
+                                                       .uri(URI.create(this.configuration.endpoint()
+                                                                                         .getTokenEndpoint()))
                                                        .header("Content-Type", "application/x-www-form-urlencoded")
                                                        .method("POST", HttpRequest.BodyPublishers.ofString(body))
                                                        .timeout(Duration.ofSeconds(30))
@@ -151,7 +152,8 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                     throw new RuntimeException(e);
                 } catch (final InterruptedException e) {
                     transitionTo(new Initial());
-                    Thread.currentThread().interrupt();
+                    Thread.currentThread()
+                          .interrupt();
                     throw new RuntimeException(e);
                 } catch (final OAuth2RequestException e) {
                     transitionTo(new Initial());
@@ -175,7 +177,8 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                     final OAuth2TokenResponse tokenResponse = CoreUtil.requestToken(null, request, objectMapper);
 
 
-                    final String refreshToken = Optional.of(tokenResponse.getRefreshToken()).orElse(refreshTokenPresent.refreshToken());
+                    final String refreshToken = Optional.of(tokenResponse.getRefreshToken())
+                                                        .orElse(refreshTokenPresent.refreshToken());
 
                     transitionTo(new RefreshTokenPresent(refreshToken, new OAuth2AccessToken(tokenResponse)));
 
@@ -236,6 +239,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
             final var codeVerifier = PKCE.generateCodeVerifier(32);
             final var stateParam = CoreUtil.generateRandomString(32);
             final var userUri = buildUrl(redirectUri, codeVerifier, stateParam);
+
             server.createContext("/oauth2/redirect", this::redirectExchangeHandler);
             transitionWithTimeout(new AwaitingAuthCode(server, redirectUri, stateParam, codeVerifier, userUri), Duration.ofSeconds(120), new Initial());
             server.start();
@@ -252,17 +256,17 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
 
     private String buildUrl(final String redirectUri, final String codeVerifier, final String stateParam) {
 
-        final UrlBuilder builder = UrlBuilder.withBasePath(this.configuration.endpoint()
-                                                                             .getAuthorizationEndpoint())
-                                             .addQueryParameter("response_type", "code")
-                                             .addQueryParameter("client_id", this.configuration.clientID())
-                                             .addQueryParameter("redirect_uri", redirectUri)
-                                             .addNullableQueryParameter("scope", this.configuration.scope())
-                                             .addQueryParameter("state", stateParam)
-                                             .addQueryParameter("code_challenge", this.configuration.pkce()
-                                                                                                    .generateCodeChallenge(codeVerifier))
-                                             .addQueryParameter("code_challenge_method", this.configuration.pkce()
-                                                                                                           .getCodeChallengeMethod());
+        final UrlUtils.Builder builder = UrlUtils.Builder.withBasePath(this.configuration.endpoint()
+                                                                                         .getAuthorizationEndpoint())
+                                                         .addQueryParameter("response_type", "code")
+                                                         .addQueryParameter("client_id", this.configuration.clientID())
+                                                         .addQueryParameter("redirect_uri", redirectUri)
+                                                         .addNullableQueryParameter("scope", this.configuration.scope())
+                                                         .addQueryParameter("state", stateParam)
+                                                         .addQueryParameter("code_challenge", this.configuration.pkce()
+                                                                                                                .generateCodeChallenge(codeVerifier))
+                                                         .addQueryParameter("code_challenge_method", this.configuration.pkce()
+                                                                                                                       .getCodeChallengeMethod());
 
         return builder.build();
     }
@@ -272,8 +276,8 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
         synchronized (lock) {
             if (getState() instanceof final AwaitingAuthCode awaitingAuthCode) {
 
-                final String code = CoreUtil.getQueryParameter(exchange, "code");
-                final String stateParam = CoreUtil.getQueryParameter(exchange, "state");
+                final String code = UrlUtils.getQueryParameter(exchange, "code");
+                final String stateParam = UrlUtils.getQueryParameter(exchange, "state");
 
                 if (stateParam == null || !MessageDigest.isEqual(awaitingAuthCode.getStateParam()
                                                                                  .getBytes(), stateParam.getBytes())) {

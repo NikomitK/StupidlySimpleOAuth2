@@ -12,4 +12,5 @@ public interface PublicClientConfiguration {
     String scope();
 
     PKCE pkce();
+
 }

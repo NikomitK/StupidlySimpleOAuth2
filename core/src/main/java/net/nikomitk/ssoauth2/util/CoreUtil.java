@@ -31,6 +31,8 @@ public class CoreUtil {
                                                                     .connectTimeout(Duration.ofSeconds(30))
                                                                     .build();
     private static final ObjectMapper DEFAULT_OBJECT_MAPPER = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    public static final Duration DEFAULT_HTTP_TIMEOUT = Duration.ofSeconds(15);
+    public static final String DEFAULT_USER_AGENT = "StupidlySimpleOAuth2/0.3";
 
     public static void openBrowser(final String url) throws UnsupportedOperationException, IOException {
 
