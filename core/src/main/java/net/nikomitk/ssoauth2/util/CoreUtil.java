@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import lombok.NonNull;
+import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
 import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
 import net.nikomitk.ssoauth2.exception.OAuth2RequestException;
@@ -201,6 +202,18 @@ public class CoreUtil {
         final var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         checkRequestException(response);
         return objectMapper.readValue(response.body(), OAuth2TokenResponse.class);
+    }
+
+    /**
+     * Creates an access token from a token response. The token is valid until the time the response was received plus the response's expiry.
+     *
+     * @param tokenResponse the parsed token response
+     * @return the access token and the instant until it is valid
+     */
+    public static OAuth2AccessToken createAccessToken(@NonNull final OAuth2TokenResponse tokenResponse) {
+
+        return new OAuth2AccessToken(tokenResponse.getAccessToken(), tokenResponse.getReceivedAt()
+                                                                                  .plusSeconds(tokenResponse.getExpiresIn()));
     }
 
     public static void checkRequestException(final HttpResponse<String> response) throws OAuth2RequestException {

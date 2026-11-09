@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpRequest;
 
+import static net.nikomitk.ssoauth2.util.CoreUtil.createAccessToken;
 import static net.nikomitk.ssoauth2.util.CoreUtil.requestBuilder;
 
 /**
@@ -78,7 +79,7 @@ public class OAuth2UserPasswordFlow extends OAuth2FlowBase {
         }
         try {
             final OAuth2TokenResponse tokenResponse = CoreUtil.requestToken(CoreUtil.defaultHttpClient(), this.httpRequest, objectMapper);
-            lastOAuth2TokenResponse = new OAuth2AccessToken(tokenResponse);
+            lastOAuth2TokenResponse = createAccessToken(tokenResponse);
         } catch (final IOException e) {
             throw new RuntimeException(e);
         } catch (final InterruptedException e) {

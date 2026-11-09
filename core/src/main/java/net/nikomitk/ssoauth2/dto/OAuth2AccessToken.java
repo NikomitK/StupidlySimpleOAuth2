@@ -9,10 +9,4 @@ import java.time.Instant;
  */
 public record OAuth2AccessToken(String token, Instant validUntil) {
 
-    public OAuth2AccessToken(final OAuth2TokenResponse tokenResponse) {
-
-        this(tokenResponse.getAccessToken(), tokenResponse.getReceivedAt()
-                                                          .plusSeconds(tokenResponse.getExpiresIn()));
-    }
-
 }

@@ -25,6 +25,7 @@ import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.Optional;
 
+import static net.nikomitk.ssoauth2.util.CoreUtil.createAccessToken;
 import static net.nikomitk.ssoauth2.util.CoreUtil.requestBuilder;
 
 
@@ -141,9 +142,9 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                     final OAuth2TokenResponse tokenResponse = CoreUtil.requestToken(CoreUtil.defaultHttpClient(), request, objectMapper);
 
                     if (tokenResponse.getRefreshToken() != null) {
-                        transitionTo(new RefreshTokenPresent(tokenResponse.getRefreshToken(), new OAuth2AccessToken(tokenResponse)));
+                        transitionTo(new RefreshTokenPresent(tokenResponse.getRefreshToken(), createAccessToken(tokenResponse)));
                     } else {
-                        transitionTo(new AccessTokenPresent(new OAuth2AccessToken(tokenResponse)));
+                        transitionTo(new AccessTokenPresent(createAccessToken(tokenResponse)));
                     }
 
                     return this;
@@ -180,7 +181,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                     final String refreshToken = Optional.of(tokenResponse.getRefreshToken())
                                                         .orElse(refreshTokenPresent.refreshToken());
 
-                    transitionTo(new RefreshTokenPresent(refreshToken, new OAuth2AccessToken(tokenResponse)));
+                    transitionTo(new RefreshTokenPresent(refreshToken, createAccessToken(tokenResponse)));
 
                 } catch (final IOException e) {
                     throw new RuntimeException(e);
