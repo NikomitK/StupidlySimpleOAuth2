@@ -1,6 +1,5 @@
 package net.nikomitk.ssoauth2.flows;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowInvalidTransitionException;
 import net.nikomitk.ssoauth2.flows.types.OAuth2Flow;
@@ -32,7 +31,7 @@ public abstract class OAuth2FlowBase implements OAuth2Flow {
     protected OAuth2FlowBase(final Object lock, final OAuth2FlowState initialState) {
 
         this.lock = lock;
-        objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        objectMapper = CoreUtil.createObjectMapper();
         this.state = initialState;
     }
 

@@ -3,7 +3,6 @@ package net.nikomitk.ssoauth2.pubclient.flows;
 import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
 import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
-import net.nikomitk.ssoauth2.exception.OAuth2RequestException;
 import net.nikomitk.ssoauth2.flows.OAuth2FlowBase;
 import net.nikomitk.ssoauth2.flows.types.OAuth2Flow;
 import net.nikomitk.ssoauth2.util.CoreUtil;
@@ -11,9 +10,7 @@ import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 
 /**
  * Class encapsulating authorization using the Resource Owner Password Credentials Grant described in section 4.3 of RFC6749.
@@ -79,10 +76,8 @@ public class OAuth2UserPasswordFlow extends OAuth2FlowBase {
         if (this.httpRequest == null) {
             startFlow();
         }
-        try (final HttpClient client = HttpClient.newHttpClient()) {
-            final var response = client.send(this.httpRequest, HttpResponse.BodyHandlers.ofString());
-            OAuth2RequestException.check(response);
-            final var tokenResponse = objectMapper.readValue(response.body(), OAuth2TokenResponse.class);
+        try {
+            final OAuth2TokenResponse tokenResponse = CoreUtil.requestToken(CoreUtil.defaultHttpClient(), this.httpRequest, objectMapper);
             lastOAuth2TokenResponse = new OAuth2AccessToken(tokenResponse);
         } catch (final IOException e) {
             throw new RuntimeException(e);

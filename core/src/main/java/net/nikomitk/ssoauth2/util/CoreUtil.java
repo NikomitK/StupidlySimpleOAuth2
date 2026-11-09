@@ -27,12 +27,32 @@ import java.util.function.Function;
 public class CoreUtil {
 
     private static final SecureRandom DEFAULT_SECURE_RANDOM = new SecureRandom();
-    private static final HttpClient DEFAULT_HTTP_CLIENT = HttpClient.newBuilder()
-                                                                    .connectTimeout(Duration.ofSeconds(30))
-                                                                    .build();
-    private static final ObjectMapper DEFAULT_OBJECT_MAPPER = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private static HttpClient DEFAULT_HTTP_CLIENT;
+    private static final ObjectMapper DEFAULT_OBJECT_MAPPER = createObjectMapper();
     public static final Duration DEFAULT_HTTP_TIMEOUT = Duration.ofSeconds(15);
     public static final String DEFAULT_USER_AGENT = "StupidlySimpleOAuth2/0.3";
+
+    /**
+     * @return the shared, immutable HTTP client with the library's default timeouts
+     */
+    public static HttpClient defaultHttpClient() {
+        if (DEFAULT_HTTP_CLIENT == null) {
+            DEFAULT_HTTP_CLIENT = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(30))
+            .build();
+        }
+        return DEFAULT_HTTP_CLIENT;
+    }
+
+    /**
+     * Creates a new ObjectMapper with the library's default configuration. Each call returns a new instance, so it can safely be customized.
+     *
+     * @return a new, default configured ObjectMapper
+     */
+    public static ObjectMapper createObjectMapper() {
+
+        return new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    }
 
     public static void openBrowser(final String url) throws UnsupportedOperationException, IOException {
 
@@ -105,12 +125,14 @@ public class CoreUtil {
 
     /**
      * Creates an OAuth2Endpoint by querying an OAuth2 well known endpoint.
+     * @param client the HTTP client to use
      * @param wellKnownEndpoint a valid URI to the well known endpoint
+     * @param objectMapper the ObjectMapper to use
      * @return an initialized instance of OAuth2Endpoint
      */
-    public static OAuth2Endpoint queryWellKnownEndpoint(final String wellKnownEndpoint) {
+    public static OAuth2Endpoint queryWellKnownEndpoint(@NonNull final HttpClient client, @NonNull final String wellKnownEndpoint, @NonNull final ObjectMapper objectMapper) {
 
-        try (final HttpClient client = HttpClient.newHttpClient()) {
+        try {
             final HttpRequest request = HttpRequest.newBuilder()
                                                    .uri(java.net.URI.create(wellKnownEndpoint))
                                                    .GET()
@@ -119,7 +141,7 @@ public class CoreUtil {
             if (response.statusCode() != 200) {
                 throw new RuntimeException("Failed to fetch well-known endpoint: " + response.statusCode());
             }
-            return new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            return objectMapper
                                      .readValue(response.body(), OAuth2Endpoint.class);
         } catch (final IOException e) {
             throw new RuntimeException(e);
@@ -130,14 +152,37 @@ public class CoreUtil {
         }
     }
 
-    public static OAuth2TokenResponse requestToken(HttpClient httpClient, @NonNull final HttpRequest request, ObjectMapper objectMapper) throws IOException, InterruptedException, OAuth2RequestException {
+    /**
+     * Creates an OAuth2Endpoint by querying an OAuth2 well known endpoint.
+     * @param wellKnownEndpoint a valid URI to the well known endpoint
+     * @return an initialized instance of OAuth2Endpoint
+     */
+    public static OAuth2Endpoint queryWellKnownEndpoint(final String wellKnownEndpoint) {
 
-        if (httpClient == null) {
-            httpClient = DEFAULT_HTTP_CLIENT;
-        }
-        if (objectMapper == null) {
-            objectMapper = DEFAULT_OBJECT_MAPPER;
-        }
+        return queryWellKnownEndpoint(defaultHttpClient(), wellKnownEndpoint, DEFAULT_OBJECT_MAPPER);
+    }
+
+    /**
+     * Sends a token request using the default HTTP client and ObjectMapper.
+     *
+     * @param request the token request
+     * @return the parsed token response
+     */
+    public static OAuth2TokenResponse requestToken(@NonNull final HttpRequest request) throws IOException, InterruptedException, OAuth2RequestException {
+
+        return requestToken(defaultHttpClient(), request, DEFAULT_OBJECT_MAPPER);
+    }
+
+    /**
+     * Sends a token request.
+     *
+     * @param httpClient the HTTP client to use
+     * @param request the token request
+     * @param objectMapper the ObjectMapper used to parse the response
+     * @return the parsed token response
+     */
+    public static OAuth2TokenResponse requestToken(@NonNull final HttpClient httpClient, @NonNull final HttpRequest request, @NonNull final ObjectMapper objectMapper) throws IOException, InterruptedException, OAuth2RequestException {
+
         final var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         OAuth2RequestException.check(response);
         return objectMapper.readValue(response.body(), OAuth2TokenResponse.class);

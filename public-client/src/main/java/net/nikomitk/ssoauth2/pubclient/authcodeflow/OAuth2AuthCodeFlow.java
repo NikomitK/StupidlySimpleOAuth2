@@ -138,7 +138,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
 
                 try {
 
-                    final OAuth2TokenResponse tokenResponse = CoreUtil.requestToken(null, request, objectMapper);
+                    final OAuth2TokenResponse tokenResponse = CoreUtil.requestToken(CoreUtil.defaultHttpClient(), request, objectMapper);
 
                     if (tokenResponse.getRefreshToken() != null) {
                         transitionTo(new RefreshTokenPresent(tokenResponse.getRefreshToken(), new OAuth2AccessToken(tokenResponse)));
@@ -174,7 +174,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
 
                 final HttpRequest request = PubClientUtil.prepareRefreshRequest(refreshTokenPresent, configuration);
                 try {
-                    final OAuth2TokenResponse tokenResponse = CoreUtil.requestToken(null, request, objectMapper);
+                    final OAuth2TokenResponse tokenResponse = CoreUtil.requestToken(CoreUtil.defaultHttpClient(), request, objectMapper);
 
 
                     final String refreshToken = Optional.of(tokenResponse.getRefreshToken())
