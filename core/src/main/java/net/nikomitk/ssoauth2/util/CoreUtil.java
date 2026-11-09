@@ -199,8 +199,15 @@ public class CoreUtil {
     public static OAuth2TokenResponse requestToken(@NonNull final HttpClient httpClient, @NonNull final HttpRequest request, @NonNull final ObjectMapper objectMapper) throws IOException, InterruptedException, OAuth2RequestException {
 
         final var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        OAuth2RequestException.check(response);
+        checkRequestException(response);
         return objectMapper.readValue(response.body(), OAuth2TokenResponse.class);
+    }
+
+    public static void checkRequestException(final HttpResponse<String> response) throws OAuth2RequestException {
+
+        if (response.statusCode() != 200) {
+            throw new OAuth2RequestException(response);
+        }
     }
 
 }

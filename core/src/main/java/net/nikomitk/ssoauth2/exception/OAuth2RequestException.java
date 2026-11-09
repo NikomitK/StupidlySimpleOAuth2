@@ -17,11 +17,4 @@ public class OAuth2RequestException extends RuntimeException {
         this(response.statusCode(), response.body());
     }
 
-    public static void check(final HttpResponse<String> response) throws OAuth2RequestException {
-
-        if (response.statusCode() != 200) {
-            throw new OAuth2RequestException(response);
-        }
-    }
-
 }
