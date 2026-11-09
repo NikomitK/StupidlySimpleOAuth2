@@ -32,7 +32,7 @@ public class UrlUtils {
 
     public static boolean isValidUri(final String uri) {
 
-        if (uri == null || uri.isEmpty() || uri.isBlank()) {
+        if (uri == null || uri.isBlank()) {
             return false;
         }
         try {
