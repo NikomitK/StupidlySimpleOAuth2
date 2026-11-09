@@ -30,10 +30,13 @@ public class UrlUtils {
 
     public static boolean isValidUri(final String uri) {
 
+        if(uri == null || uri.isEmpty() || uri.isBlank()) {
+            return false;
+        }
         try {
-            new URI(uri);
+            new URI(uri).toURL();
             return true;
-        } catch (final URISyntaxException e) {
+        } catch (final URISyntaxException | MalformedURLException | IllegalArgumentException e) {
             return false;
         }
     }
