@@ -5,6 +5,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+import lombok.NonNull;
+
 public class HttpFormBodyBuilder {
 
     private final Map<String, String> formData;
@@ -19,15 +21,17 @@ public class HttpFormBodyBuilder {
         return new HttpFormBodyBuilder();
     }
 
-    public HttpFormBodyBuilder addFormData(final String key, final String value) {
+    public HttpFormBodyBuilder addFormData(@NonNull final String key, @NonNull final String value) {
 
-        if (value != null) {
-            formData.put(key, value);
+        if(key.isBlank()) {
+            throw new IllegalArgumentException("Form data key must not be blank");
         }
+            formData.put(key, value);
+        
         return this;
     }
 
-    public HttpFormBodyBuilder addNullableFormData(final String key, final String value) {
+    public HttpFormBodyBuilder addNullableFormData(@NonNull final String key, final String value) {
 
         if (value != null) {
             return addFormData(key, value);
@@ -37,6 +41,9 @@ public class HttpFormBodyBuilder {
 
     public String build() {
 
+        if(formData.isEmpty()) {
+            return "";
+        }
         final StringBuilder builder = new StringBuilder();
         for (final Map.Entry<String, String> entry : formData.entrySet()) {
             builder.append(URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8))
