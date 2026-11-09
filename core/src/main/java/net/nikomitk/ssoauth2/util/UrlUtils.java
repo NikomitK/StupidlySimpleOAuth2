@@ -47,7 +47,11 @@ public class UrlUtils {
 
         private final StringBuilder query = new StringBuilder();
 
-        public Builder(final String basepath) {
+        public Builder(@NonNull final String basepath) {
+
+            if (!isValidUri(basepath)) {
+                throw new IllegalArgumentException("Invalid base path: " + basepath);
+            }
 
             query.append(basepath);
             query.append("?");
@@ -58,16 +62,20 @@ public class UrlUtils {
             return new Builder(basepath);
         }
 
-        public Builder addQueryParameter(final String key, final String value) {
+        public Builder addQueryParameter(@NonNull final String key, @NonNull final String value) {
 
-            query.append(key)
+            if (key.isBlank()) {
+                throw new IllegalArgumentException("Query parameter key must not be blank");
+            }
+
+            query.append(URLEncoder.encode(key, StandardCharsets.UTF_8))
                  .append("=")
                  .append(URLEncoder.encode(value, StandardCharsets.UTF_8))
                  .append("&");
             return this;
         }
 
-        public Builder addNullableQueryParameter(final String key, final String value) {
+        public Builder addNullableQueryParameter(@NonNull final String key, final String value) {
 
             if (value != null) {
                 return addQueryParameter(key, value);
