@@ -53,7 +53,7 @@ public enum PKCE {
      */
     public static String generateCodeVerifier(final int randomByteCount) {
 
-        if (randomByteCount < 32 || randomByteCount > 95) {
+        if (randomByteCount < 32 || randomByteCount > 96) {
             throw new StandardValidationException(7636, "https://www.rfc-editor.org/info/rfc7636/#section-4.1", "The PKCE code verifier has to be between 43 characters (32 bytes) and 128 characters (95 bytes) of Base64.");
         }
         return CoreUtil.generateRandomString(randomByteCount);
