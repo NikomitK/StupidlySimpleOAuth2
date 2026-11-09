@@ -27,21 +27,24 @@ import java.util.function.Function;
 public class CoreUtil {
 
     private static final SecureRandom DEFAULT_SECURE_RANDOM = new SecureRandom();
-    private static HttpClient DEFAULT_HTTP_CLIENT;
     private static final ObjectMapper DEFAULT_OBJECT_MAPPER = createObjectMapper();
     public static final Duration DEFAULT_HTTP_TIMEOUT = Duration.ofSeconds(15);
     public static final String DEFAULT_USER_AGENT = "StupidlySimpleOAuth2/0.3";
 
+    private static final class DefaultHttpClientHolder {
+
+        static final HttpClient INSTANCE = HttpClient.newBuilder()
+                                                     .connectTimeout(Duration.ofSeconds(30))
+                                                     .build();
+
+    }
+
     /**
-     * @return the shared, immutable HTTP client with the library's default timeouts
-     */
+    * @return the shared, immutable HTTP client with the library's default timeouts
+    */
     public static HttpClient defaultHttpClient() {
-        if (DEFAULT_HTTP_CLIENT == null) {
-            DEFAULT_HTTP_CLIENT = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(30))
-            .build();
-        }
-        return DEFAULT_HTTP_CLIENT;
+
+        return DefaultHttpClientHolder.INSTANCE;
     }
 
     /**
@@ -142,7 +145,7 @@ public class CoreUtil {
                 throw new RuntimeException("Failed to fetch well-known endpoint: " + response.statusCode());
             }
             return objectMapper
-                                     .readValue(response.body(), OAuth2Endpoint.class);
+                               .readValue(response.body(), OAuth2Endpoint.class);
         } catch (final IOException e) {
             throw new RuntimeException(e);
         } catch (final InterruptedException e) {

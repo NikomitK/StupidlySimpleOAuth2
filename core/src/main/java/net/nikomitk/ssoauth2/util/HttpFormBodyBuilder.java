@@ -1,11 +1,11 @@
 package net.nikomitk.ssoauth2.util;
 
+import lombok.NonNull;
+
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
-
-import lombok.NonNull;
 
 public class HttpFormBodyBuilder {
 
@@ -23,11 +23,11 @@ public class HttpFormBodyBuilder {
 
     public HttpFormBodyBuilder addFormData(@NonNull final String key, @NonNull final String value) {
 
-        if(key.isBlank()) {
+        if (key.isBlank()) {
             throw new IllegalArgumentException("Form data key must not be blank");
         }
-            formData.put(key, value);
-        
+        formData.put(key, value);
+
         return this;
     }
 
@@ -41,7 +41,7 @@ public class HttpFormBodyBuilder {
 
     public String build() {
 
-        if(formData.isEmpty()) {
+        if (formData.isEmpty()) {
             return "";
         }
         final StringBuilder builder = new StringBuilder();

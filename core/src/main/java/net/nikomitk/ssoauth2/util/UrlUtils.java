@@ -2,7 +2,6 @@ package net.nikomitk.ssoauth2.util;
 
 
 import com.sun.net.httpserver.HttpExchange;
-
 import lombok.NonNull;
 
 import java.net.*;
@@ -11,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 public class UrlUtils {
 
     public static String getQueryParameter(@NonNull final HttpExchange exchange, @NonNull final String parameterName) {
+
         return getQueryParameter(exchange.getRequestURI()
                                          .getQuery(), parameterName);
     }
@@ -32,7 +32,7 @@ public class UrlUtils {
 
     public static boolean isValidUri(final String uri) {
 
-        if(uri == null || uri.isEmpty() || uri.isBlank()) {
+        if (uri == null || uri.isEmpty() || uri.isBlank()) {
             return false;
         }
         try {
