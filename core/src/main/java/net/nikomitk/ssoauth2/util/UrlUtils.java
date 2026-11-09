@@ -3,18 +3,20 @@ package net.nikomitk.ssoauth2.util;
 
 import com.sun.net.httpserver.HttpExchange;
 
+import lombok.NonNull;
+
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 
 public class UrlUtils {
 
-    public static String getQueryParameter(final HttpExchange exchange, final String parameterName) {
+    public static String getQueryParameter(@NonNull final HttpExchange exchange, @NonNull final String parameterName) {
+        return getQueryParameter(exchange.getRequestURI()
+                                         .getQuery(), parameterName);
+    }
 
-        final String query = exchange.getRequestURI()
-                                     .getQuery();
-        if (query == null) {
-            return null;
-        }
+    public static String getQueryParameter(@NonNull final String query, @NonNull final String parameterName) {
+
         final String[] params = query.split("&");
         for (final String param : params) {
             if (param.startsWith(parameterName + "=")) {
