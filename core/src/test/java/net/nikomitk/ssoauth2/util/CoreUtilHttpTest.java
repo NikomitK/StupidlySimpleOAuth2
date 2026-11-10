@@ -132,6 +132,25 @@ class CoreUtilHttpTest {
     }
 
     @Test
+    void queryWellKnownEndpointRestoresInterruptFlagAndWrapsInterruptedException() {
+
+        server.enqueue(new MockResponse.Builder().body(WELL_KNOWN_JSON).build());
+        final String url = wellKnownUrl();
+
+        // HttpClient.send() throws InterruptedException immediately if the flag is already set
+        Thread.currentThread().interrupt();
+        try {
+            final RuntimeException exception = assertThrows(RuntimeException.class, () -> CoreUtil.queryWellKnownEndpoint(url));
+
+            assertInstanceOf(InterruptedException.class, exception.getCause());
+            assertTrue(Thread.currentThread().isInterrupted());
+        } finally {
+            // clear the flag so it doesn't leak into other tests
+            Thread.interrupted();
+        }
+    }
+
+    @Test
     void queryWellKnownEndpointRejectsNullArguments() {
 
         assertThrows(NullPointerException.class, () -> CoreUtil.queryWellKnownEndpoint(null, wellKnownUrl(), CoreUtil.createObjectMapper()));
