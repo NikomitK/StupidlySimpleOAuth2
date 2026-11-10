@@ -76,7 +76,8 @@ class CoreUtilHttpTest {
     @Test
     void queryWellKnownEndpointParsesEndpointAndIgnoresUnknownFields() {
 
-        server.enqueue(new MockResponse.Builder().body(WELL_KNOWN_JSON).build());
+        server.enqueue(new MockResponse.Builder().body(WELL_KNOWN_JSON)
+                                                 .build());
 
         final OAuth2Endpoint endpoint = CoreUtil.queryWellKnownEndpoint(wellKnownUrl());
 
@@ -88,21 +89,24 @@ class CoreUtilHttpTest {
     @Test
     void queryWellKnownEndpointSendsGetWithDefaultUserAgent() throws InterruptedException {
 
-        server.enqueue(new MockResponse.Builder().body(WELL_KNOWN_JSON).build());
+        server.enqueue(new MockResponse.Builder().body(WELL_KNOWN_JSON)
+                                                 .build());
 
         CoreUtil.queryWellKnownEndpoint(wellKnownUrl());
 
         final RecordedRequest request = server.takeRequest();
         assertEquals("GET", request.getMethod());
         assertEquals("/.well-known/openid-configuration", request.getTarget());
-        assertEquals(CoreUtil.DEFAULT_USER_AGENT, request.getHeaders().get("User-Agent"));
+        assertEquals(CoreUtil.DEFAULT_USER_AGENT, request.getHeaders()
+                                                         .get("User-Agent"));
     }
 
     @ParameterizedTest
     @ValueSource(ints = {204, 301, 404, 500})
     void queryWellKnownEndpointRejectsNon200Status(final int status) {
 
-        server.enqueue(new MockResponse.Builder().code(status).build());
+        server.enqueue(new MockResponse.Builder().code(status)
+                                                 .build());
 
         final RuntimeException exception = assertThrows(RuntimeException.class, () -> CoreUtil.queryWellKnownEndpoint(wellKnownUrl()));
 
@@ -113,7 +117,8 @@ class CoreUtilHttpTest {
     @Test
     void queryWellKnownEndpointWrapsInvalidJson() {
 
-        server.enqueue(new MockResponse.Builder().body("this is not json").build());
+        server.enqueue(new MockResponse.Builder().body("this is not json")
+                                                 .build());
 
         final RuntimeException exception = assertThrows(RuntimeException.class, () -> CoreUtil.queryWellKnownEndpoint(wellKnownUrl()));
 
@@ -134,16 +139,19 @@ class CoreUtilHttpTest {
     @Test
     void queryWellKnownEndpointRestoresInterruptFlagAndWrapsInterruptedException() {
 
-        server.enqueue(new MockResponse.Builder().body(WELL_KNOWN_JSON).build());
+        server.enqueue(new MockResponse.Builder().body(WELL_KNOWN_JSON)
+                                                 .build());
         final String url = wellKnownUrl();
 
         // HttpClient.send() throws InterruptedException immediately if the flag is already set
-        Thread.currentThread().interrupt();
+        Thread.currentThread()
+              .interrupt();
         try {
             final RuntimeException exception = assertThrows(RuntimeException.class, () -> CoreUtil.queryWellKnownEndpoint(url));
 
             assertInstanceOf(InterruptedException.class, exception.getCause());
-            assertTrue(Thread.currentThread().isInterrupted());
+            assertTrue(Thread.currentThread()
+                             .isInterrupted());
         } finally {
             // clear the flag so it doesn't leak into other tests
             Thread.interrupted();
@@ -161,7 +169,8 @@ class CoreUtilHttpTest {
     @Test
     void requestTokenParsesTokenResponse() throws Exception {
 
-        server.enqueue(new MockResponse.Builder().body(TOKEN_JSON).build());
+        server.enqueue(new MockResponse.Builder().body(TOKEN_JSON)
+                                                 .build());
 
         final OAuth2TokenResponse response = CoreUtil.requestToken(tokenRequest());
 
@@ -175,15 +184,18 @@ class CoreUtilHttpTest {
     @Test
     void requestTokenSendsRequestUnchanged() throws Exception {
 
-        server.enqueue(new MockResponse.Builder().body(TOKEN_JSON).build());
+        server.enqueue(new MockResponse.Builder().body(TOKEN_JSON)
+                                                 .build());
 
         CoreUtil.requestToken(tokenRequest());
 
         final RecordedRequest request = server.takeRequest();
         assertEquals("POST", request.getMethod());
         assertEquals("/token", request.getTarget());
-        assertEquals("application/x-www-form-urlencoded", request.getHeaders().get("Content-Type"));
-        assertEquals(CoreUtil.DEFAULT_USER_AGENT, request.getHeaders().get("User-Agent"));
+        assertEquals("application/x-www-form-urlencoded", request.getHeaders()
+                                                                 .get("Content-Type"));
+        assertEquals(CoreUtil.DEFAULT_USER_AGENT, request.getHeaders()
+                                                         .get("User-Agent"));
         assertEquals("grant_type=password", request.getBody()
                                                    .utf8());
     }
@@ -207,7 +219,8 @@ class CoreUtilHttpTest {
     @Test
     void requestTokenThrowsJsonProcessingExceptionOnInvalidJson() {
 
-        server.enqueue(new MockResponse.Builder().body("this is not json").build());
+        server.enqueue(new MockResponse.Builder().body("this is not json")
+                                                 .build());
 
         assertThrows(JsonProcessingException.class, () -> CoreUtil.requestToken(tokenRequest()));
     }
@@ -242,7 +255,8 @@ class CoreUtilHttpTest {
     @Test
     void checkRequestExceptionAcceptsStatus200() throws Exception {
 
-        server.enqueue(new MockResponse.Builder().body(TOKEN_JSON).build());
+        server.enqueue(new MockResponse.Builder().body(TOKEN_JSON)
+                                                 .build());
 
         final HttpResponse<String> response = sendTokenRequest();
 
@@ -253,13 +267,17 @@ class CoreUtilHttpTest {
     @ValueSource(ints = {201, 400, 401, 500})
     void checkRequestExceptionRejectsEveryStatusOtherThan200(final int status) throws Exception {
 
-        server.enqueue(new MockResponse.Builder().code(status).body("error body").build());
+        server.enqueue(new MockResponse.Builder().code(status)
+                                                 .body("error body")
+                                                 .build());
 
         final HttpResponse<String> response = sendTokenRequest();
 
         final OAuth2RequestException exception = assertThrows(OAuth2RequestException.class, () -> CoreUtil.checkRequestException(response));
-        assertTrue(exception.getMessage().contains(String.valueOf(status)));
-        assertTrue(exception.getMessage().contains("error body"));
+        assertTrue(exception.getMessage()
+                            .contains(String.valueOf(status)));
+        assertTrue(exception.getMessage()
+                            .contains("error body"));
     }
 
 }

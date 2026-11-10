@@ -75,8 +75,8 @@ public abstract class OAuth2FlowBase implements OAuth2Flow {
 
     private ScheduledFuture<?> expireAfter(final Duration duration, final OAuth2FlowState next) {
 
-        final OAuth2FlowState current = state; // caller holds lock
-        return scheduler.schedule(() -> {
+        final OAuth2FlowState current = state;
+        return scheduler.schedule(() -> { // maybe implement a handoff to a virtual thread, so this is not blocking the single thread of the scheduler
             synchronized (lock) {
                 if (state == current)
                     transitionTo(next);

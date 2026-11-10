@@ -4,18 +4,21 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
 import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
 import net.nikomitk.ssoauth2.exception.OAuth2RequestException;
 
-import java.awt.*;
+import java.awt.Desktop;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -27,12 +30,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.function.Function;
 
-public class CoreUtil {
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+final public class CoreUtil {
 
     private static final SecureRandom DEFAULT_SECURE_RANDOM = new SecureRandom();
     private static final ObjectMapper DEFAULT_OBJECT_MAPPER = createObjectMapper();
     public static final Duration DEFAULT_HTTP_TIMEOUT = Duration.ofSeconds(15);
     public static final String DEFAULT_USER_AGENT = "StupidlySimpleOAuth2/0.3";
+    private static final Base64.Encoder DEFAULT_URL_ENCODER = Base64.getUrlEncoder()
+                                                                    .withoutPadding();
 
     private static final class DefaultHttpClientHolder {
 
@@ -96,33 +102,30 @@ public class CoreUtil {
 
     public static HttpServer createHttpServer(final int port) throws IOException {
 
-        final InetSocketAddress address = new InetSocketAddress(InetAddress.getLoopbackAddress(), port);//new
+        final InetSocketAddress address = new InetSocketAddress(InetAddress.getLoopbackAddress(), port);
 
-        final HttpServer server = HttpServer.create();
+        final HttpServer server = HttpServer.create(address, 2);
         server.setExecutor(Executors.newThreadPerTaskExecutor(Thread.ofVirtual()
                                                                     .name("oauth2-redirect-", 0)
                                                                     .factory()));
-        server.bind(address, 2);
         return server;
     }
 
     public static void sendResponse(final HttpExchange exchange, final int responseCode, final String responseBody) throws IOException {
 
-        final byte[] body = responseBody.getBytes(StandardCharsets.UTF_8);
-        exchange.sendResponseHeaders(responseCode, body.length);
+        try (exchange) {
+            final byte[] body = responseBody.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(responseCode, body.length);
 
-        exchange.getResponseBody()
-                .write(body);
+            exchange.getResponseBody()
+                    .write(body);
 
-        exchange.getResponseBody()
-                .close();
-        exchange.close();
+        }
     }
 
     public static String generateRandomString(final int byteCount) {
 
-        return generateRandomString(byteCount, Base64.getUrlEncoder()
-                                                     .withoutPadding()::encodeToString);
+        return generateRandomString(byteCount, DEFAULT_URL_ENCODER::encodeToString);
     }
 
     public static String generateRandomString(final int byteCount, final Function<byte[], String> encoder) {
@@ -134,11 +137,10 @@ public class CoreUtil {
 
     public static ScheduledThreadPoolExecutor createScheduler() {
 
-        final ScheduledThreadPoolExecutor s = new ScheduledThreadPoolExecutor(1, r -> {
-            final Thread t = new Thread(r, "oauth2-timeout");
-            t.setDaemon(true);
-            return t;
-        });
+        final ScheduledThreadPoolExecutor s = new ScheduledThreadPoolExecutor(1, Thread.ofPlatform()
+                                                                                       .name("oauth2-timeout")
+                                                                                       .daemon()
+                                                                                       .factory());
         s.setRemoveOnCancelPolicy(true);
         return s;
     }
@@ -156,10 +158,8 @@ public class CoreUtil {
             final HttpRequest request = requestBuilder(URI.create(wellKnownEndpoint))
                                                                                      .GET()
                                                                                      .build();
-            final var response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                throw new RuntimeException("Failed to fetch well-known endpoint: " + response.statusCode());
-            }
+            final var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            checkRequestException(response);
             return objectMapper
                                .readValue(response.body(), OAuth2Endpoint.class);
         } catch (final IOException e) {
@@ -167,7 +167,7 @@ public class CoreUtil {
         } catch (final InterruptedException e) {
             Thread.currentThread()
                   .interrupt();
-            throw new RuntimeException(e);
+            throw new RuntimeException("Interrupted while querying well known endpoint", e);
         }
     }
 
@@ -224,6 +224,11 @@ public class CoreUtil {
         if (response.statusCode() != 200) {
             throw new OAuth2RequestException(response);
         }
+    }
+
+    public static String urlEncode(final String value) {
+
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
 }

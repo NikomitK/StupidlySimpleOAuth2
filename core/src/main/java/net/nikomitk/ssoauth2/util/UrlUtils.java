@@ -2,29 +2,36 @@ package net.nikomitk.ssoauth2.util;
 
 
 import com.sun.net.httpserver.HttpExchange;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
 
 import java.net.*;
 import java.nio.charset.StandardCharsets;
+import java.util.StringJoiner;
 
-public class UrlUtils {
+import static net.nikomitk.ssoauth2.util.CoreUtil.urlEncode;
+
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+final public class UrlUtils {
 
     public static String getQueryParameter(@NonNull final HttpExchange exchange, @NonNull final String parameterName) {
 
-        return getQueryParameter(exchange.getRequestURI()
-                                         .getQuery(), parameterName);
+        String query = exchange.getRequestURI()
+                               .getRawQuery();
+        if (query == null) {
+            return null;
+        }
+        return getQueryParameter(query, parameterName);
     }
 
-    public static String getQueryParameter(@NonNull final String query, @NonNull final String parameterName) {
+    public static String getQueryParameter(@NonNull final String rawQuery, @NonNull final String parameterName) {
 
-        final String[] params = query.split("&");
-        for (final String param : params) {
-            if (param.startsWith(parameterName + "=")) {
-                final String[] parts = param.split("=", 2);
-                if (parts.length < 2) {
-                    return "";
-                }
-                return parts[1];
+        for (final String pair : rawQuery.split("&")) {
+            final String[] parts = pair.split("=", 2);
+            if (URLDecoder.decode(parts[0], StandardCharsets.UTF_8)
+                          .equals(parameterName)) {
+                return parts.length == 2 ? URLDecoder.decode(parts[1], StandardCharsets.UTF_8) : "";
             }
         }
         return null;
@@ -45,16 +52,15 @@ public class UrlUtils {
 
     public static final class Builder {
 
-        private final StringBuilder query = new StringBuilder();
+        private final StringJoiner query = new StringJoiner("&");
+        private final String basepath;
 
         public Builder(@NonNull final String basepath) {
 
             if (!isValidUri(basepath)) {
                 throw new IllegalArgumentException("Invalid base path: " + basepath);
             }
-
-            query.append(basepath);
-            query.append("?");
+            this.basepath = basepath;
         }
 
         public static Builder withBasePath(final String basepath) {
@@ -68,10 +74,7 @@ public class UrlUtils {
                 throw new IllegalArgumentException("Query parameter key must not be blank");
             }
 
-            query.append(URLEncoder.encode(key, StandardCharsets.UTF_8))
-                 .append("=")
-                 .append(URLEncoder.encode(value, StandardCharsets.UTF_8))
-                 .append("&");
+            query.add(urlEncode(key) + "=" + urlEncode(value));
             return this;
         }
 
@@ -85,10 +88,11 @@ public class UrlUtils {
 
         public String build() {
 
-            if (!query.isEmpty() && query.charAt(query.length() - 1) == '&') {
-                query.deleteCharAt(query.length() - 1);
+            String url = basepath;
+            if (query.length() > 0) {
+                url += "?" + query;
             }
-            return query.toString();
+            return url;
         }
 
     }

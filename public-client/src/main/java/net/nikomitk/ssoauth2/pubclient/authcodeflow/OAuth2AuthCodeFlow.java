@@ -22,9 +22,10 @@ import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.http.HttpRequest;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Duration;
-import java.util.Optional;
+import java.util.Objects;
 
 import static net.nikomitk.ssoauth2.util.CoreUtil.createAccessToken;
 import static net.nikomitk.ssoauth2.util.CoreUtil.requestBuilder;
@@ -179,8 +180,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                     final OAuth2TokenResponse tokenResponse = CoreUtil.requestToken(CoreUtil.defaultHttpClient(), request, objectMapper);
 
 
-                    final String refreshToken = Optional.of(tokenResponse.getRefreshToken())
-                                                        .orElse(refreshTokenPresent.refreshToken());
+                    final String refreshToken = Objects.requireNonNullElse(tokenResponse.getRefreshToken(), refreshTokenPresent.refreshToken());
 
                     transitionTo(new RefreshTokenPresent(refreshToken, createAccessToken(tokenResponse)));
 
@@ -282,7 +282,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                 final String stateParam = UrlUtils.getQueryParameter(exchange, "state");
 
                 if (stateParam == null || !MessageDigest.isEqual(awaitingAuthCode.getStateParam()
-                                                                                 .getBytes(), stateParam.getBytes())) {
+                                                                                 .getBytes(StandardCharsets.UTF_8), stateParam.getBytes(StandardCharsets.UTF_8))) {
                     CoreUtil.sendResponse(exchange, 400, "State mismatch. This might be a CSRF attack. You can now close this window.");
                 } else if (code != null && !code.isBlank()) {
                     CoreUtil.sendResponse(exchange, 200, "Authentication successful. You can now close this window.");

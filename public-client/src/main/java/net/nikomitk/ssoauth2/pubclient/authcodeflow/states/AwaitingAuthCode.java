@@ -2,6 +2,7 @@ package net.nikomitk.ssoauth2.pubclient.authcodeflow.states;
 
 import com.sun.net.httpserver.HttpServer;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import net.nikomitk.ssoauth2.states.ClosableState;
 import net.nikomitk.ssoauth2.states.ExpiringState;
 import net.nikomitk.ssoauth2.states.OAuth2FlowState;
@@ -11,6 +12,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@RequiredArgsConstructor
 final public class AwaitingAuthCode implements AuthCodeFlowState, ClosableState, ExpiringState {
 
     private final HttpServer server;
@@ -22,20 +24,10 @@ final public class AwaitingAuthCode implements AuthCodeFlowState, ClosableState,
     private final String codeVerifier;
     @Getter
     private final String userUri;
-    private final CountDownLatch countDownLatch;
+    private final CountDownLatch countDownLatch = new CountDownLatch(1);
 
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private volatile ScheduledFuture<?> timeout;
-
-    public AwaitingAuthCode(final HttpServer server, final String redirectUri, final String stateParam, final String codeVerifier, final String userUri) {
-
-        this.server = server;
-        this.redirectUri = redirectUri;
-        this.stateParam = stateParam;
-        this.codeVerifier = codeVerifier;
-        this.userUri = userUri;
-        countDownLatch = new CountDownLatch(1);
-    }
 
     @Override
     public void setTimeout(final ScheduledFuture<?> future) {
