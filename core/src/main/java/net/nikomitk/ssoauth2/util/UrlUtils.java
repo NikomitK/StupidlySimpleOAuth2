@@ -11,20 +11,21 @@ public class UrlUtils {
 
     public static String getQueryParameter(@NonNull final HttpExchange exchange, @NonNull final String parameterName) {
 
-        return getQueryParameter(exchange.getRequestURI()
-                                         .getQuery(), parameterName);
+        String query = exchange.getRequestURI()
+                               .getRawQuery();
+        if (query == null) {
+            return null;
+        }
+        return getQueryParameter(query, parameterName);
     }
 
-    public static String getQueryParameter(@NonNull final String query, @NonNull final String parameterName) {
+    public static String getQueryParameter(@NonNull final String rawQuery, @NonNull final String parameterName) {
 
-        final String[] params = query.split("&");
-        for (final String param : params) {
-            if (param.startsWith(parameterName + "=")) {
-                final String[] parts = param.split("=", 2);
-                if (parts.length < 2) {
-                    return "";
-                }
-                return parts[1];
+        for (final String pair : rawQuery.split("&")) {
+            final String[] parts = pair.split("=", 2);
+            if (URLDecoder.decode(parts[0], StandardCharsets.UTF_8)
+                          .equals(parameterName)) {
+                return parts.length == 2 ? URLDecoder.decode(parts[1], StandardCharsets.UTF_8) : "";
             }
         }
         return null;

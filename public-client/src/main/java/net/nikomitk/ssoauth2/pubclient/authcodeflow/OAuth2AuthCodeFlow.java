@@ -24,7 +24,7 @@ import java.net.URI;
 import java.net.http.HttpRequest;
 import java.security.MessageDigest;
 import java.time.Duration;
-import java.util.Optional;
+import java.util.Objects;
 
 import static net.nikomitk.ssoauth2.util.CoreUtil.createAccessToken;
 import static net.nikomitk.ssoauth2.util.CoreUtil.requestBuilder;
@@ -179,8 +179,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                     final OAuth2TokenResponse tokenResponse = CoreUtil.requestToken(CoreUtil.defaultHttpClient(), request, objectMapper);
 
 
-                    final String refreshToken = Optional.of(tokenResponse.getRefreshToken())
-                                                        .orElse(refreshTokenPresent.refreshToken());
+                    final String refreshToken = Objects.requireNonNullElse(tokenResponse.getRefreshToken(), refreshTokenPresent.refreshToken());
 
                     transitionTo(new RefreshTokenPresent(refreshToken, createAccessToken(tokenResponse)));
 

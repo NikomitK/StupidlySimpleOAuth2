@@ -156,10 +156,8 @@ public class CoreUtil {
             final HttpRequest request = requestBuilder(URI.create(wellKnownEndpoint))
                                                                                      .GET()
                                                                                      .build();
-            final var response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                throw new RuntimeException("Failed to fetch well-known endpoint: " + response.statusCode());
-            }
+            final var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            checkRequestException(response);
             return objectMapper
                                .readValue(response.body(), OAuth2Endpoint.class);
         } catch (final IOException e) {
