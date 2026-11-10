@@ -18,6 +18,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Base64;
@@ -106,10 +107,11 @@ public class CoreUtil {
 
     public static void sendResponse(final HttpExchange exchange, final int responseCode, final String responseBody) throws IOException {
 
-        exchange.sendResponseHeaders(responseCode, responseBody.length());
+        final byte[] body = responseBody.getBytes(StandardCharsets.UTF_8);
+        exchange.sendResponseHeaders(responseCode, body.length);
 
         exchange.getResponseBody()
-                .write(responseBody.getBytes());
+                .write(body);
 
         exchange.getResponseBody()
                 .close();

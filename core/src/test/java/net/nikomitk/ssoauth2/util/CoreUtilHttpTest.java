@@ -15,7 +15,9 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
 import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -208,6 +210,37 @@ class CoreUtilHttpTest {
         assertThrows(NullPointerException.class, () -> CoreUtil.requestToken(null, request, CoreUtil.createObjectMapper()));
         assertThrows(NullPointerException.class, () -> CoreUtil.requestToken(CoreUtil.defaultHttpClient(), null, CoreUtil.createObjectMapper()));
         assertThrows(NullPointerException.class, () -> CoreUtil.requestToken(CoreUtil.defaultHttpClient(), request, null));
+    }
+
+    // checkRequestException
+
+    private HttpResponse<String> sendTokenRequest() throws Exception {
+
+        return CoreUtil.defaultHttpClient()
+                       .send(tokenRequest(), HttpResponse.BodyHandlers.ofString());
+    }
+
+    @Test
+    void checkRequestExceptionAcceptsStatus200() throws Exception {
+
+        server.enqueue(new MockResponse.Builder().body(TOKEN_JSON).build());
+
+        final HttpResponse<String> response = sendTokenRequest();
+
+        assertDoesNotThrow(() -> CoreUtil.checkRequestException(response));
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {201, 400, 401, 500})
+    void checkRequestExceptionRejectsEveryStatusOtherThan200(final int status) throws Exception {
+
+        server.enqueue(new MockResponse.Builder().code(status).body("error body").build());
+
+        final HttpResponse<String> response = sendTokenRequest();
+
+        final OAuth2RequestException exception = assertThrows(OAuth2RequestException.class, () -> CoreUtil.checkRequestException(response));
+        assertTrue(exception.getMessage().contains(String.valueOf(status)));
+        assertTrue(exception.getMessage().contains("error body"));
     }
 
 }
