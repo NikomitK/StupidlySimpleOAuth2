@@ -10,6 +10,7 @@ import net.nikomitk.ssoauth2.util.CoreUtil;
 import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.http.HttpRequest;
 
@@ -82,7 +83,7 @@ public class OAuth2UserPasswordFlow extends OAuth2FlowBase {
             final OAuth2TokenResponse tokenResponse = CoreUtil.requestToken(CoreUtil.defaultHttpClient(), this.httpRequest, objectMapper);
             lastOAuth2TokenResponse = createAccessToken(tokenResponse);
         } catch (final IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         } catch (final InterruptedException e) {
             Thread.currentThread()
                   .interrupt();

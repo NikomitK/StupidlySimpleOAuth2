@@ -12,6 +12,7 @@ import net.nikomitk.ssoauth2.exception.OAuth2RequestException;
 
 import java.awt.*;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -162,7 +163,7 @@ public class CoreUtil {
             return objectMapper
                                .readValue(response.body(), OAuth2Endpoint.class);
         } catch (final IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         } catch (final InterruptedException e) {
             Thread.currentThread()
                   .interrupt();

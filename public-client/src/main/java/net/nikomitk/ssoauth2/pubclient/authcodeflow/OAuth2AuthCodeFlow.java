@@ -18,6 +18,7 @@ import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
 import net.nikomitk.ssoauth2.util.UrlUtils;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.http.HttpRequest;
@@ -150,7 +151,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                     return this;
                 } catch (final IOException e) {
                     transitionTo(new Initial());
-                    throw new RuntimeException(e);
+                    throw new UncheckedIOException(e);
                 } catch (final InterruptedException e) {
                     transitionTo(new Initial());
                     Thread.currentThread()
@@ -184,7 +185,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                     transitionTo(new RefreshTokenPresent(refreshToken, createAccessToken(tokenResponse)));
 
                 } catch (final IOException e) {
-                    throw new RuntimeException(e);
+                    throw new UncheckedIOException(e);
                 } catch (final InterruptedException e) {
                     Thread.currentThread()
                           .interrupt();
@@ -233,7 +234,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
             try {
                 server = CoreUtil.createHttpServer(port);
             } catch (final IOException e) {
-                throw new RuntimeException(e);
+                throw new UncheckedIOException(e);
             }
 
             final var redirectUri = buildRedirectUri(server.getAddress());
