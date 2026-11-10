@@ -12,4 +12,6 @@ module net.nikomitk.ssoauth2 {
     exports net.nikomitk.ssoauth2.exception;
     exports net.nikomitk.ssoauth2.states;
     exports net.nikomitk.ssoauth2.flows.types;
+
+    opens net.nikomitk.ssoauth2.dto to com.fasterxml.jackson.databind;
 }
