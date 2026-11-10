@@ -10,4 +10,9 @@ public class OAuth2FlowInterruptedException extends RuntimeException {
         super(message);
     }
 
+    public OAuth2FlowInterruptedException(final String message, final Throwable cause) {
+
+        super(message, cause);
+    }
+
 }

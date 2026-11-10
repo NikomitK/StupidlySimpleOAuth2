@@ -3,6 +3,7 @@ package net.nikomitk.ssoauth2.pubclient.flows;
 import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
 import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
+import net.nikomitk.ssoauth2.exception.OAuth2FlowInterruptedException;
 import net.nikomitk.ssoauth2.flows.OAuth2FlowBase;
 import net.nikomitk.ssoauth2.flows.types.OAuth2Flow;
 import net.nikomitk.ssoauth2.util.CoreUtil;
@@ -85,7 +86,7 @@ public class OAuth2UserPasswordFlow extends OAuth2FlowBase {
         } catch (final InterruptedException e) {
             Thread.currentThread()
                   .interrupt();
-            throw new RuntimeException(e);
+            throw new OAuth2FlowInterruptedException("Interrupted while requesting the access token", e);
         }
         return this;
     }

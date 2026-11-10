@@ -116,7 +116,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
             } catch (final InterruptedException e) {
                 Thread.currentThread()
                       .interrupt();
-                throw new RuntimeException(e);
+                throw new OAuth2FlowInterruptedException("Interrupted while waiting for the authorization", e);
             }
         }
 
@@ -155,7 +155,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                     transitionTo(new Initial());
                     Thread.currentThread()
                           .interrupt();
-                    throw new RuntimeException(e);
+                    throw new OAuth2FlowInterruptedException("Interrupted while requesting the access token", e);
                 } catch (final OAuth2RequestException e) {
                     transitionTo(new Initial());
                     throw e;
@@ -188,7 +188,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                 } catch (final InterruptedException e) {
                     Thread.currentThread()
                           .interrupt();
-                    throw new RuntimeException(e);
+                    throw new OAuth2FlowInterruptedException("Interrupted while refreshing the access token", e);
                 }
 
 
