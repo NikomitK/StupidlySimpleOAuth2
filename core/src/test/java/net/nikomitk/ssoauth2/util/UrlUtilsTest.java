@@ -42,7 +42,7 @@ class UrlUtilsTest {
 
     static Stream<Arguments> builderCases() {
 
-        return Stream.of(Arguments.of("https://www.example.com/path", Map.of("query", "value"), "https://www.example.com/path?query=value"), Arguments.of("https://www.example.com/path", orderedParameters("a", "1", "b", "2", "c", "3"), "https://www.example.com/path?a=1&b=2&c=3"), Arguments.of("https://www.example.com", Map.of("q", "hello world"), "https://www.example.com?q=hello+world"), Arguments.of("https://www.example.com", Map.of("q", "a&b=c"), "https://www.example.com?q=a%26b%3Dc"), Arguments.of("https://www.example.com", Map.of("redirect_uri", "http://localhost:8080/cb"), "https://www.example.com?redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fcb"));
+        return Stream.of(Arguments.of("https://www.example.com/path", Map.of("query", "value"), "https://www.example.com/path?query=value"), Arguments.of("https://www.example.com/path", orderedParameters("a", "1", "b", "2", "c", "3"), "https://www.example.com/path?a=1&b=2&c=3"), Arguments.of("https://www.example.com", Map.of("q", "hello world"), "https://www.example.com?q=hello+world"), Arguments.of("https://www.example.com", Map.of("q", "a&b=c"), "https://www.example.com?q=a%26b%3Dc"), Arguments.of("https://www.example.com", Map.of("redirect_uri", "http://localhost:8080/cb"), "https://www.example.com?redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fcb"), Arguments.of("https://www.example.com/path", Map.of(), "https://www.example.com/path"));
     }
 
     private static Map<String, String> orderedParameters(final String... keysAndValues) {

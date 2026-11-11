@@ -6,6 +6,7 @@ import lombok.NonNull;
 
 import java.net.*;
 import java.nio.charset.StandardCharsets;
+import java.util.StringJoiner;
 
 public class UrlUtils {
 
@@ -46,16 +47,15 @@ public class UrlUtils {
 
     public static final class Builder {
 
-        private final StringBuilder query = new StringBuilder();
+        private final StringJoiner query = new StringJoiner("&");
+        private final String basepath;
 
         public Builder(@NonNull final String basepath) {
 
             if (!isValidUri(basepath)) {
                 throw new IllegalArgumentException("Invalid base path: " + basepath);
             }
-
-            query.append(basepath);
-            query.append("?");
+            this.basepath = basepath;
         }
 
         public static Builder withBasePath(final String basepath) {
@@ -68,11 +68,8 @@ public class UrlUtils {
             if (key.isBlank()) {
                 throw new IllegalArgumentException("Query parameter key must not be blank");
             }
-
-            query.append(URLEncoder.encode(key, StandardCharsets.UTF_8))
-                 .append("=")
-                 .append(URLEncoder.encode(value, StandardCharsets.UTF_8))
-                 .append("&");
+            String parameter = URLEncoder.encode(key, StandardCharsets.UTF_8) + "=" + URLEncoder.encode(value, StandardCharsets.UTF_8);
+            query.add(parameter);
             return this;
         }
 
@@ -86,10 +83,11 @@ public class UrlUtils {
 
         public String build() {
 
-            if (!query.isEmpty() && query.charAt(query.length() - 1) == '&') {
-                query.deleteCharAt(query.length() - 1);
+            String url = basepath;
+            if (!(query.length() == 0)) {
+                url += "?" + query.toString();
             }
-            return query.toString();
+            return url;
         }
 
     }
