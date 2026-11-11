@@ -4,13 +4,16 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
 import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
 import net.nikomitk.ssoauth2.exception.OAuth2RequestException;
 
-import java.awt.*;
+import java.awt.Desktop;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetAddress;
@@ -27,12 +30,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.function.Function;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class CoreUtil {
 
     private static final SecureRandom DEFAULT_SECURE_RANDOM = new SecureRandom();
     private static final ObjectMapper DEFAULT_OBJECT_MAPPER = createObjectMapper();
     public static final Duration DEFAULT_HTTP_TIMEOUT = Duration.ofSeconds(15);
     public static final String DEFAULT_USER_AGENT = "StupidlySimpleOAuth2/0.3";
+    private static final Base64.Encoder DEFAULT_URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
 
     private static final class DefaultHttpClientHolder {
 
@@ -96,33 +101,30 @@ public class CoreUtil {
 
     public static HttpServer createHttpServer(final int port) throws IOException {
 
-        final InetSocketAddress address = new InetSocketAddress(InetAddress.getLoopbackAddress(), port);//new
+        final InetSocketAddress address = new InetSocketAddress(InetAddress.getLoopbackAddress(), port);
 
-        final HttpServer server = HttpServer.create();
+        final HttpServer server = HttpServer.create(address, 2);
         server.setExecutor(Executors.newThreadPerTaskExecutor(Thread.ofVirtual()
                                                                     .name("oauth2-redirect-", 0)
                                                                     .factory()));
-        server.bind(address, 2);
         return server;
     }
 
     public static void sendResponse(final HttpExchange exchange, final int responseCode, final String responseBody) throws IOException {
 
-        final byte[] body = responseBody.getBytes(StandardCharsets.UTF_8);
-        exchange.sendResponseHeaders(responseCode, body.length);
+        try(exchange) {
+            final byte[] body = responseBody.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(responseCode, body.length);
+    
+            exchange.getResponseBody()
+                    .write(body);
 
-        exchange.getResponseBody()
-                .write(body);
-
-        exchange.getResponseBody()
-                .close();
-        exchange.close();
+        }
     }
 
     public static String generateRandomString(final int byteCount) {
 
-        return generateRandomString(byteCount, Base64.getUrlEncoder()
-                                                     .withoutPadding()::encodeToString);
+        return generateRandomString(byteCount, DEFAULT_URL_ENCODER::encodeToString);
     }
 
     public static String generateRandomString(final int byteCount, final Function<byte[], String> encoder) {

@@ -2,12 +2,16 @@ package net.nikomitk.ssoauth2.util;
 
 
 import com.sun.net.httpserver.HttpExchange;
+
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
+import lombok.AccessLevel;
 
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.StringJoiner;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class UrlUtils {
 
     public static String getQueryParameter(@NonNull final HttpExchange exchange, @NonNull final String parameterName) {
@@ -84,8 +88,8 @@ public class UrlUtils {
         public String build() {
 
             String url = basepath;
-            if (!(query.length() == 0)) {
-                url += "?" + query.toString();
+            if (query.length() > 0) {
+                url += "?" + query;
             }
             return url;
         }
