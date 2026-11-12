@@ -79,12 +79,13 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
      */
     public String getAuthUri() {
 
-
-        if (getState() instanceof final AwaitingAuthCode awaitingAuthCode) {
+        final var currentState = getState();
+        if (currentState instanceof final AwaitingAuthCode awaitingAuthCode) {
             return awaitingAuthCode.getUserUri();
         } else {
-            throw new OAuth2FlowWrongStateException(getState().getClass()
-                                                              .getSimpleName(), new String[]{"AwaitingAuthCode"});
+            throw new OAuth2FlowWrongStateException(currentState.getClass()
+                                                                .getSimpleName(), new String[]{"AwaitingAuthCode"});
+
         }
 
     }
@@ -109,12 +110,13 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
      */
     public OAuth2AuthCodeFlow requestAccessToken() {
 
+        boolean waited = false;
+
         if (getState() instanceof final AwaitingAuthCode awaitingAuthCode) {
+
             try {
                 awaitingAuthCode.waitUntilFinished();
-                if (getState() instanceof Initial) {
-                    throw new OAuth2FlowInterruptedException("Authorization timed out or was cancelled");
-                }
+                waited = true;
             } catch (final InterruptedException e) {
                 Thread.currentThread()
                       .interrupt();
@@ -123,6 +125,11 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
         }
 
         synchronized (lock) {
+
+            if (waited && getState() instanceof Initial) {
+                throw new OAuth2FlowInterruptedException("Authorization timed out or was cancelled");
+            }
+
             if (getState() instanceof AuthCodePresent(final String authCode, final String redirectUri, final String codeVerifier)) {
 
                 final String body = HttpFormBodyBuilder.newBuilder()
@@ -204,11 +211,12 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
     @Override
     public OAuth2AccessToken getAccessToken() {
 
-        if (getState() instanceof final AuthorizedState authorizedState) {
+        final var currentState = getState();
+        if (currentState instanceof final AuthorizedState authorizedState) {
             return authorizedState.getAccessToken();
         } else {
-            throw new OAuth2FlowWrongStateException(getState().getClass()
-                                                              .getSimpleName(), new String[]{"AuthorizedState"});
+            throw new OAuth2FlowWrongStateException(currentState.getClass()
+                                                                .getSimpleName(), new String[]{"AuthorizedState"});
         }
 
     }

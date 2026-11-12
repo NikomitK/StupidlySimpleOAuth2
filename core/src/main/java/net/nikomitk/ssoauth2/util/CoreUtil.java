@@ -216,7 +216,7 @@ final public class CoreUtil {
     public static OAuth2AccessToken createAccessToken(@NonNull final OAuth2TokenResponse tokenResponse) {
 
         return new OAuth2AccessToken(tokenResponse.accessToken(), tokenResponse.receivedAt()
-                                                                                  .plusSeconds(tokenResponse.expiresIn()));
+                                                                               .plusSeconds(tokenResponse.expiresIn()));
     }
 
     public static void checkRequestException(final HttpResponse<String> response) throws OAuth2RequestException {
