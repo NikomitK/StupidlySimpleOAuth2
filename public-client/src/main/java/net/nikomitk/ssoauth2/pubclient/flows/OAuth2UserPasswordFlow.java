@@ -61,7 +61,7 @@ public class OAuth2UserPasswordFlow extends OAuth2FlowBase {
                                                .addFormData("grant_type", "password")
                                                .addFormData("username", this.username)
                                                .addFormData("password", this.password)
-                                               .addFormData("scope", scope)
+                                               .addNullableFormData("scope", scope)
                                                .addFormData("client_id", this.clientID)
                                                .build();
 

@@ -31,7 +31,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.function.Function;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class CoreUtil {
+final public class CoreUtil {
 
     private static final SecureRandom DEFAULT_SECURE_RANDOM = new SecureRandom();
     private static final ObjectMapper DEFAULT_OBJECT_MAPPER = createObjectMapper();
@@ -137,11 +137,10 @@ public class CoreUtil {
 
     public static ScheduledThreadPoolExecutor createScheduler() {
 
-        final ScheduledThreadPoolExecutor s = new ScheduledThreadPoolExecutor(1, r -> {
-            final Thread t = new Thread(r, "oauth2-timeout");
-            t.setDaemon(true);
-            return t;
-        });
+        final ScheduledThreadPoolExecutor s = new ScheduledThreadPoolExecutor(1, Thread.ofPlatform()
+                                                                                       .name("oauth2-timeout")
+                                                                                       .daemon()
+                                                                                       .factory());
         s.setRemoveOnCancelPolicy(true);
         return s;
     }
@@ -168,7 +167,7 @@ public class CoreUtil {
         } catch (final InterruptedException e) {
             Thread.currentThread()
                   .interrupt();
-            throw new RuntimeException(e);
+            throw new RuntimeException("Interrupted while querying well known endpoint", e);
         }
     }
 

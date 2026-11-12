@@ -13,7 +13,7 @@ import java.util.StringJoiner;
 import static net.nikomitk.ssoauth2.util.CoreUtil.urlEncode;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class UrlUtils {
+final public class UrlUtils {
 
     public static String getQueryParameter(@NonNull final HttpExchange exchange, @NonNull final String parameterName) {
 
