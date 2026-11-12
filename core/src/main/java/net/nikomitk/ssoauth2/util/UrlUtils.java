@@ -2,14 +2,15 @@ package net.nikomitk.ssoauth2.util;
 
 
 import com.sun.net.httpserver.HttpExchange;
-
+import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import lombok.AccessLevel;
 
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.StringJoiner;
+
+import static net.nikomitk.ssoauth2.util.CoreUtil.urlEncode;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class UrlUtils {
@@ -72,8 +73,8 @@ public class UrlUtils {
             if (key.isBlank()) {
                 throw new IllegalArgumentException("Query parameter key must not be blank");
             }
-            String parameter = URLEncoder.encode(key, StandardCharsets.UTF_8) + "=" + URLEncoder.encode(value, StandardCharsets.UTF_8);
-            query.add(parameter);
+
+            query.add(urlEncode(key) + "=" + urlEncode(value));
             return this;
         }
 

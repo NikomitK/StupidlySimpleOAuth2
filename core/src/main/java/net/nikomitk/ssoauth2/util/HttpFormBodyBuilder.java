@@ -2,18 +2,17 @@ package net.nikomitk.ssoauth2.util;
 
 import lombok.NonNull;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
+
+import static net.nikomitk.ssoauth2.util.CoreUtil.urlEncode;
 
 public class HttpFormBodyBuilder {
 
-    private final Map<String, String> formData;
+    private final List<String> formData = new ArrayList<>();
 
     private HttpFormBodyBuilder() {
 
-        formData = new HashMap<>();
     }
 
     public static HttpFormBodyBuilder newBuilder() {
@@ -26,7 +25,7 @@ public class HttpFormBodyBuilder {
         if (key.isBlank()) {
             throw new IllegalArgumentException("Form data key must not be blank");
         }
-        formData.put(key, value);
+        formData.add(urlEncode(key) + "=" + urlEncode(value));
 
         return this;
     }
@@ -41,17 +40,7 @@ public class HttpFormBodyBuilder {
 
     public String build() {
 
-        if (formData.isEmpty()) {
-            return "";
-        }
-        final StringBuilder builder = new StringBuilder();
-        for (final Map.Entry<String, String> entry : formData.entrySet()) {
-            builder.append(URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8))
-                   .append("=")
-                   .append(URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8))
-                   .append("&");
-        }
-        return builder.substring(0, builder.length() - 1);
+        return String.join("&", formData);
     }
 
 }

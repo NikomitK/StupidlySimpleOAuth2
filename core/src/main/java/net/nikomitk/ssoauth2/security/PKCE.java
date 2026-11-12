@@ -17,7 +17,7 @@ import java.util.function.Function;
  *
  * @see <a href="https://www.rfc-editor.org/info/rfc7636">RFC7636</a>
  */
-@RequiredArgsConstructor 
+@RequiredArgsConstructor
 public enum PKCE {
 
     /**
@@ -65,7 +65,7 @@ public enum PKCE {
             // This should not happen, as according to the MessageDigest class, every implementation of the Java platform is required to support SHA-256.
             throw new RuntimeException(e);
         }
-        
+
         final byte[] codeChallengeBytes = digest.digest(asciiCodeVerifier);
         return Base64
                      .getUrlEncoder()

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
-
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
@@ -19,6 +18,7 @@ import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -37,7 +37,8 @@ public class CoreUtil {
     private static final ObjectMapper DEFAULT_OBJECT_MAPPER = createObjectMapper();
     public static final Duration DEFAULT_HTTP_TIMEOUT = Duration.ofSeconds(15);
     public static final String DEFAULT_USER_AGENT = "StupidlySimpleOAuth2/0.3";
-    private static final Base64.Encoder DEFAULT_URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
+    private static final Base64.Encoder DEFAULT_URL_ENCODER = Base64.getUrlEncoder()
+                                                                    .withoutPadding();
 
     private static final class DefaultHttpClientHolder {
 
@@ -112,10 +113,10 @@ public class CoreUtil {
 
     public static void sendResponse(final HttpExchange exchange, final int responseCode, final String responseBody) throws IOException {
 
-        try(exchange) {
+        try (exchange) {
             final byte[] body = responseBody.getBytes(StandardCharsets.UTF_8);
             exchange.sendResponseHeaders(responseCode, body.length);
-    
+
             exchange.getResponseBody()
                     .write(body);
 
@@ -224,6 +225,11 @@ public class CoreUtil {
         if (response.statusCode() != 200) {
             throw new OAuth2RequestException(response);
         }
+    }
+
+    public static String urlEncode(final String value) {
+
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
 }
