@@ -1,4 +1,4 @@
-package net.nikomitk.ssoauth2.pubclient.flows;
+package net.nikomitk.ssoauth2.pubclient.userpasswordflow;
 
 import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
 import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
