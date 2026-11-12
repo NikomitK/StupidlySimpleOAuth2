@@ -27,7 +27,7 @@ public interface OAuth2Flow {
 
     /**
      * Get a valid {@link OAuth2AccessToken} with an {@link Instant} describing the end of validity
-     * @throws OAuth2FlowNotReadyException if the flow was not initialized with {@link OAuth2Flow#startFlow()}
+     * @throws {@link net.nikomitk.ssoauth2.exception.OAuth2FlowWrongStateException} if the flow was not initialized with {@link OAuth2Flow#startFlow()}
      * @return the last acquired OAuth2AccessToken
      */
     OAuth2AccessToken getAccessToken();

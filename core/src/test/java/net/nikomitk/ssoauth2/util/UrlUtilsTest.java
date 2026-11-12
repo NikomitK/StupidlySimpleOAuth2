@@ -23,7 +23,7 @@ class UrlUtilsTest {
     void getQueryParameterReturnsValueOfRequestedParameter(final String url) {
 
         assertEquals("value", UrlUtils.getQueryParameter(java.net.URI.create(url)
-                                                                     .getQuery(), "query"));
+                                                                     .getRawQuery(), "query"));
     }
 
     @ParameterizedTest
