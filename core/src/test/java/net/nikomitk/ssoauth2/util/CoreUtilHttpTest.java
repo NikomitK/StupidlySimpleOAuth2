@@ -174,11 +174,11 @@ class CoreUtilHttpTest {
 
         final OAuth2TokenResponse response = CoreUtil.requestToken(tokenRequest());
 
-        assertEquals("access", response.getAccessToken());
-        assertEquals("Bearer", response.getTokenType());
-        assertEquals(3600, response.getExpiresIn());
-        assertEquals("refresh", response.getRefreshToken());
-        assertNotNull(response.getReceivedAt());
+        assertEquals("access", response.accessToken());
+        assertEquals("Bearer", response.tokenType());
+        assertEquals(3600, response.expiresIn());
+        assertEquals("refresh", response.refreshToken());
+        assertNotNull(response.receivedAt());
     }
 
     @Test

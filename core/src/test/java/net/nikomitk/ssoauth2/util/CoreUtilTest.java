@@ -134,7 +134,7 @@ class CoreUtilTest {
         final OAuth2AccessToken token = CoreUtil.createAccessToken(response);
 
         assertEquals("access", token.token());
-        assertEquals(response.getReceivedAt()
+        assertEquals(response.receivedAt()
                              .plusSeconds(3600), token.validUntil());
     }
 
