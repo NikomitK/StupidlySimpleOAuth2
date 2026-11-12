@@ -64,8 +64,10 @@ public abstract class OAuth2FlowBase implements OAuth2Flow {
 
     protected void transitionWithTimeout(final ExpiringState newState, final Duration delay, final OAuth2FlowState timeoutState) throws OAuth2FlowInvalidTransitionException {
 
-        transitionTo(newState);
-        newState.setTimeout(expireAfter(delay, timeoutState));
+        synchronized (lock) {
+            transitionTo(newState);
+            newState.setTimeout(expireAfter(delay, timeoutState));
+        }
     }
 
     protected OAuth2FlowState getState() {
