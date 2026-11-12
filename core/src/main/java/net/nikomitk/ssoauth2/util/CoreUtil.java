@@ -25,6 +25,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -116,7 +117,8 @@ final public class CoreUtil {
         try (exchange) {
             final byte[] body = responseBody.getBytes(StandardCharsets.UTF_8);
             exchange.sendResponseHeaders(responseCode, body.length);
-
+            exchange.getResponseHeaders()
+                    .set("Content-Type", "text/plain; charset=utf-8");
             exchange.getResponseBody()
                     .write(body);
 
@@ -215,8 +217,14 @@ final public class CoreUtil {
      */
     public static OAuth2AccessToken createAccessToken(@NonNull final OAuth2TokenResponse tokenResponse) {
 
-        return new OAuth2AccessToken(tokenResponse.accessToken(), tokenResponse.receivedAt()
-                                                                               .plusSeconds(tokenResponse.expiresIn()));
+        Instant validUntil;
+        if (tokenResponse.expiresIn() > 0) {
+            validUntil = tokenResponse.receivedAt()
+                                      .plusSeconds(tokenResponse.expiresIn());
+        } else {
+            validUntil = Instant.MAX;
+        }
+        return new OAuth2AccessToken(tokenResponse.accessToken(), validUntil);
     }
 
     public static void checkRequestException(final HttpResponse<String> response) throws OAuth2RequestException {

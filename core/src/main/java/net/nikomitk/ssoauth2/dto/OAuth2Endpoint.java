@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 
 import java.util.List;
 
@@ -17,7 +18,9 @@ public class OAuth2Endpoint {
 
     private String issuer;
     @JsonProperty("authorization_endpoint")
+    @NonNull
     private String authorizationEndpoint;
+    @NonNull
     @JsonProperty("token_endpoint")
     private String tokenEndpoint;
     @JsonProperty("userinfo_endpoint")

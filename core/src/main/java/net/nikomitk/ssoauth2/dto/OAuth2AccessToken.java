@@ -9,4 +9,11 @@ import java.time.Instant;
  */
 public record OAuth2AccessToken(String token, Instant validUntil) {
 
+    public boolean isExpired() {
+
+        return Instant.now()
+                      .minusSeconds(3)
+                      .isAfter(validUntil);
+    }
+
 }

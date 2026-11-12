@@ -27,6 +27,16 @@ public class OAuth2BrowserFlow extends OAuth2AuthCodeFlow {
     }
 
     /**
+     * Create a new Instance of the OAuth2BrowserFlow.
+     *
+     * @param configuration an initialized configuration object
+     */
+    public OAuth2BrowserFlow(final AuthCodeFlowConfiguration configuration) {
+
+        super(configuration);
+    }
+
+    /**
      * Starts an http server on the loopback interface and a specified port. Tries to open the default browser with
      * the authorization URL.
      *

@@ -6,7 +6,6 @@ import net.nikomitk.ssoauth2.flows.types.OAuth2Flow;
 import net.nikomitk.ssoauth2.states.ClosableState;
 import net.nikomitk.ssoauth2.states.ExpiringState;
 import net.nikomitk.ssoauth2.states.OAuth2FlowState;
-import net.nikomitk.ssoauth2.states.StartableState;
 import net.nikomitk.ssoauth2.util.CoreUtil;
 
 import java.time.Duration;
@@ -20,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings("unused")
 public abstract class OAuth2FlowBase implements OAuth2Flow {
 
-    protected final ObjectMapper objectMapper;
+    protected static final ObjectMapper objectMapper = CoreUtil.createObjectMapper();
     private volatile OAuth2FlowState state;
     private final Object lock;
     private static final ScheduledExecutorService scheduler = CoreUtil.createScheduler();
@@ -31,7 +30,6 @@ public abstract class OAuth2FlowBase implements OAuth2Flow {
     protected OAuth2FlowBase(final Object lock, final OAuth2FlowState initialState) {
 
         this.lock = lock;
-        objectMapper = CoreUtil.createObjectMapper();
         this.state = initialState;
     }
 
@@ -55,9 +53,6 @@ public abstract class OAuth2FlowBase implements OAuth2Flow {
 
             if (previousState instanceof final ClosableState closableState) {
                 closableState.close();
-            }
-            if (newState instanceof final StartableState startableState) {
-                startableState.start();
             }
         }
     }
