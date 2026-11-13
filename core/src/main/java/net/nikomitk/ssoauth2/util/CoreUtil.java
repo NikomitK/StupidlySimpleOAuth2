@@ -101,6 +101,12 @@ final public class CoreUtil {
         }
     }
 
+    /** Create an HTTP Server that listens on the loopback address and the given port. The server will use a virtual thread executor.
+     *
+     * @param port the port to listen on. If the port is 0, a random free port will be used.
+     * @return the created HTTP server.
+     * @throws IOException If the bound port is already in use, an IOException will be thrown.
+     */
     public static HttpServer createHttpServer(final int port) throws IOException {
 
         final InetSocketAddress address = new InetSocketAddress(InetAddress.getLoopbackAddress(), port);
@@ -112,6 +118,14 @@ final public class CoreUtil {
         return server;
     }
 
+    /**
+     * Convenience method to send a response to an HttpExchange. The exchange will be closed after the response is sent.
+     *
+     * @param exchange the HttpExchange to send the response to.
+     * @param responseCode the HTTP status code to send.
+     * @param responseBody the response body to send. It will be encoded as UTF-8.
+     * @throws IOException If an I/O error occurs while sending the response.
+     */
     public static void sendResponse(final HttpExchange exchange, final int responseCode, final String responseBody) throws IOException {
 
         try (exchange) {
@@ -125,18 +139,40 @@ final public class CoreUtil {
         }
     }
 
+    /**
+     * Generates a random string of the given byte count, encoded as a URL-safe Base64 string without padding.
+     *
+     * @param byteCount the number of random bytes to generate.
+     * @return a random string of the given byte count, encoded as a URL-safe Base64 string without padding.
+     * @throws IllegalArgumentException if byteCount is negative
+     */
     public static String generateRandomString(final int byteCount) {
 
+        if(byteCount < 0) {
+            throw new IllegalArgumentException("byteCount must be non-negative");
+        }
         return generateRandomString(byteCount, DEFAULT_URL_ENCODER::encodeToString);
     }
 
-    public static String generateRandomString(final int byteCount, final Function<byte[], String> encoder) {
+    /**
+     * Generates a random string of the given byte count, encoded using the provided encoder function.
+     *
+     * @param byteCount the number of random bytes to generate.
+     * @param encoder the function to use for encoding the random bytes.
+     * @return a random string of the given byte count, encoded using the provided encoder function.
+     * @throws IllegalArgumentException if byteCount is negative.
+     */
+    public static String generateRandomString(final int byteCount, @NonNull final Function<byte[], String> encoder) {
 
         final byte[] bytes = new byte[byteCount];
         DEFAULT_SECURE_RANDOM.nextBytes(bytes);
         return encoder.apply(bytes);
     }
 
+    /** Creates a ScheduledThreadPoolExecutor with a single thread, which is a daemon thread and has the name "oauth2-timeout". The executor is configured to remove cancelled tasks from the queue.
+     *
+     * @return a ScheduledThreadPoolExecutor with a single daemon thread named "oauth2-timeout".
+     */
     public static ScheduledThreadPoolExecutor createScheduler() {
 
         final ScheduledThreadPoolExecutor s = new ScheduledThreadPoolExecutor(1, Thread.ofPlatform()
@@ -217,7 +253,7 @@ final public class CoreUtil {
      */
     public static OAuth2AccessToken createAccessToken(@NonNull final OAuth2TokenResponse tokenResponse) {
 
-        Instant validUntil;
+        final Instant validUntil;
         if (tokenResponse.expiresIn() > 0) {
             validUntil = tokenResponse.receivedAt()
                                       .plusSeconds(tokenResponse.expiresIn());

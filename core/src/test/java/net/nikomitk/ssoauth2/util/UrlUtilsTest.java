@@ -30,14 +30,14 @@ class UrlUtilsTest {
     @ValueSource(strings = {"https://www.example.com", "https://www.example.com:8080", "https://www.example.com/path", "https://www.example.com/path?query=value", "https://www.example.com/path?query=value#fragment", "https://www.example.com:55697/path?query=value#fragment"})
     void isValidUriAcceptsWellFormedUris(final String uri) {
 
-        assertTrue(UrlUtils.isValidUri(uri));
+        assertTrue(UrlUtils.isValidUrl(uri));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"https", "", " ", "null"})
     void isValidUriRejectsMalformedAndBlankUris(final String uri) {
 
-        assertFalse(UrlUtils.isValidUri(uri));
+        assertFalse(UrlUtils.isValidUrl(uri));
     }
 
     static Stream<Arguments> builderCases() {
