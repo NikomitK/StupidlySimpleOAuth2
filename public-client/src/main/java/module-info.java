@@ -1,6 +1,6 @@
 module net.nikomitk.ssoauth2.pubclient {
     
-    requires net.nikomitk.ssoauth2;
+    requires transitive net.nikomitk.ssoauth2;
     requires static lombok;
     requires java.net.http;
     requires jdk.httpserver;
