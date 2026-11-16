@@ -197,6 +197,9 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                     Thread.currentThread()
                           .interrupt();
                     throw new OAuth2FlowInterruptedException("Interrupted while refreshing the access token", e);
+                } catch (final OAuth2RequestException e) {
+                    transitionTo(new Initial());
+                    throw e;
                 }
 
 
