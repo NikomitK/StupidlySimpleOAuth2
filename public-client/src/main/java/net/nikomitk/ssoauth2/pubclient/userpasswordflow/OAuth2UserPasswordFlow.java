@@ -21,6 +21,7 @@ import static net.nikomitk.ssoauth2.util.CoreUtil.requestBuilder;
  * Class encapsulating authorization using the Resource Owner Password Credentials Grant described in section 4.3 of RFC6749.
  */
 @SuppressWarnings("unused")
+@Deprecated(forRemoval = false)
 public class OAuth2UserPasswordFlow extends OAuth2FlowBase {
 
     private final OAuth2Endpoint endpoint;
