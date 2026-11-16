@@ -41,6 +41,10 @@ final public class UrlUtils {
      */
     public static String getQueryParameter(@NonNull final String rawQuery, @NonNull final String parameterName) {
 
+        if (rawQuery.isBlank()) {
+            return null;
+        }
+
         for (final String pair : rawQuery.split("&")) {
             final String[] parts = pair.split("=", 2);
             if (URLDecoder.decode(parts[0], StandardCharsets.UTF_8)

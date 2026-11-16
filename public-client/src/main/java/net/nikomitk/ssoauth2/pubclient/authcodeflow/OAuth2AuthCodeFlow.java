@@ -182,7 +182,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
         synchronized (lock) {
             if (getState() instanceof final RefreshTokenPresent refreshTokenPresent) {
 
-                final HttpRequest request = PubClientUtil.prepareRefreshRequest(refreshTokenPresent, configuration);
+                final HttpRequest request = PubClientUtil.prepareRefreshRequest(refreshTokenPresent.refreshToken(), configuration);
                 try {
                     final OAuth2TokenResponse tokenResponse = CoreUtil.requestToken(CoreUtil.defaultHttpClient(), request, objectMapper);
 
@@ -251,8 +251,8 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
             final var userUri = buildUrl(redirectUri, codeVerifier, stateParam);
 
             server.createContext("/oauth2/redirect", this::redirectExchangeHandler);
-            transitionWithTimeout(new AwaitingAuthCode(server, redirectUri, stateParam, codeVerifier, userUri), Duration.ofSeconds(120), new Initial());
             server.start();
+            transitionWithTimeout(new AwaitingAuthCode(server, redirectUri, stateParam, codeVerifier, userUri), Duration.ofSeconds(120), new Initial());
 
             return this;
         }

@@ -130,9 +130,9 @@ final public class CoreUtil {
 
         try (exchange) {
             final byte[] body = responseBody.getBytes(StandardCharsets.UTF_8);
-            exchange.sendResponseHeaders(responseCode, body.length);
             exchange.getResponseHeaders()
                     .set("Content-Type", "text/plain; charset=utf-8");
+            exchange.sendResponseHeaders(responseCode, body.length);
             exchange.getResponseBody()
                     .write(body);
 
@@ -148,9 +148,6 @@ final public class CoreUtil {
      */
     public static String generateRandomString(final int byteCount) {
 
-        if (byteCount < 0) {
-            throw new IllegalArgumentException("byteCount must be non-negative");
-        }
         return generateRandomString(byteCount, DEFAULT_URL_ENCODER::encodeToString);
     }
 
@@ -164,6 +161,9 @@ final public class CoreUtil {
      */
     public static String generateRandomString(final int byteCount, @NonNull final Function<byte[], String> encoder) {
 
+        if (byteCount < 0) {
+            throw new IllegalArgumentException("byteCount must be non-negative");
+        }
         final byte[] bytes = new byte[byteCount];
         DEFAULT_SECURE_RANDOM.nextBytes(bytes);
         return encoder.apply(bytes);

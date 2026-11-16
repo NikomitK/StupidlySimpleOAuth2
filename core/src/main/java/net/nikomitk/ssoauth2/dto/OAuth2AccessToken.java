@@ -12,7 +12,7 @@ public record OAuth2AccessToken(String token, Instant validUntil) {
     public boolean isExpired() {
 
         return Instant.now()
-                      .minusSeconds(3)
+                      .plusSeconds(3)
                       .isAfter(validUntil);
     }
 

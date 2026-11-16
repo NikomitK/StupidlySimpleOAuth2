@@ -1,7 +1,6 @@
 package net.nikomitk.ssoauth2.pubclient;
 
 import lombok.experimental.UtilityClass;
-import net.nikomitk.ssoauth2.pubclient.authcodeflow.states.RefreshTokenPresent;
 import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
 
 import java.net.URI;
@@ -13,11 +12,11 @@ import static net.nikomitk.ssoauth2.util.CoreUtil.requestBuilder;
 public class PubClientUtil {
 
 
-    public static HttpRequest prepareRefreshRequest(final RefreshTokenPresent refreshTokenPresent, final PublicClientConfiguration configuration) {
+    public static HttpRequest prepareRefreshRequest(final String refreshToken, final PublicClientConfiguration configuration) {
 
         final String body = HttpFormBodyBuilder.newBuilder()
                                                .addFormData("grant_type", "refresh_token")
-                                               .addFormData("refresh_token", refreshTokenPresent.refreshToken())
+                                               .addFormData("refresh_token", refreshToken)
                                                .addNullableFormData("scope", configuration.scope())
                                                .addFormData("client_id", configuration.clientID())
                                                .build();
