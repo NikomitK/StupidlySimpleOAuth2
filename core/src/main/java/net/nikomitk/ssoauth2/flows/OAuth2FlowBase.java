@@ -33,11 +33,21 @@ public abstract class OAuth2FlowBase implements OAuth2Flow {
         this.state = initialState;
     }
 
+    /**
+     * Initializes the common lock object for synchronizing state transitions. The initial state is set to null.
+     * @param lock the object to lock on.
+     */
     protected OAuth2FlowBase(final Object lock) {
 
         this(lock, null);
     }
 
+    /**
+     * Transitions the flow to a new state. If the transition is invalid, an exception is thrown.
+     *
+     * @param newState the initialized new state to transition to.
+     * @throws OAuth2FlowInvalidTransitionException if the class of the new state is not in the list of possible next states of the current state.
+     */
     protected void transitionTo(final OAuth2FlowState newState) throws OAuth2FlowInvalidTransitionException {
 
         synchronized (lock) {
@@ -57,6 +67,16 @@ public abstract class OAuth2FlowBase implements OAuth2Flow {
         }
     }
 
+    /**
+     * Transitions the flow to a new state. The new state receives a ScheduledFuture that will transition the flow to a timeout state after the specified delay.
+     * The ScheduledFuture is meant to be cancelled if the transition
+     * If the transition is invalid, an exception is thrown.
+     *
+     * @param newState the initialized new state to transition to.
+     * @param delay the duration after which the flow should transition to the timeout state.
+     * @param timeoutState the state to transition to after the delay.
+     * @throws OAuth2FlowInvalidTransitionException if the class of the new state is not in the list of possible next states of the current state.
+     */
     protected void transitionWithTimeout(final ExpiringState newState, final Duration delay, final OAuth2FlowState timeoutState) throws OAuth2FlowInvalidTransitionException {
 
         synchronized (lock) {
@@ -65,6 +85,9 @@ public abstract class OAuth2FlowBase implements OAuth2Flow {
         }
     }
 
+    /**
+     * @return the current state of the flow.
+     */
     protected OAuth2FlowState getState() {
 
         return state;

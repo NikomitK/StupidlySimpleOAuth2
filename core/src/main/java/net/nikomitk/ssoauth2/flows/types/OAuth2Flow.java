@@ -4,6 +4,9 @@ import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
 
 import java.time.Instant;
 
+/**
+ * Interface representing an OAuth2 flow. It defines the methods that any OAuth2 flow implementation must provide, including starting the flow, requesting and refreshing access tokens, and retrieving the current access token.
+ */
 public interface OAuth2Flow {
 
     /**
@@ -27,7 +30,6 @@ public interface OAuth2Flow {
 
     /**
      * Get a valid {@link OAuth2AccessToken} with an {@link Instant} describing the end of validity
-     * @throws {@link net.nikomitk.ssoauth2.exception.OAuth2FlowWrongStateException} if the flow was not initialized with {@link OAuth2Flow#startFlow()}
      * @return the last acquired OAuth2AccessToken
      */
     OAuth2AccessToken getAccessToken();
