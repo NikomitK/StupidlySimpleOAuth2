@@ -148,7 +148,7 @@ final public class CoreUtil {
      */
     public static String generateRandomString(final int byteCount) {
 
-        if(byteCount < 0) {
+        if (byteCount < 0) {
             throw new IllegalArgumentException("byteCount must be non-negative");
         }
         return generateRandomString(byteCount, DEFAULT_URL_ENCODER::encodeToString);
