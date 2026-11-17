@@ -1,6 +1,9 @@
 package net.nikomitk.ssoauth2.util;
 
 import lombok.NonNull;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +27,8 @@ public class HttpFormBodyBuilder {
      *
      * @return the created HttpFormBodyBuilder instance.
      */
-    public static HttpFormBodyBuilder newBuilder() {
+    @Contract(value = "-> new", pure = true)
+    public static @NotNull HttpFormBodyBuilder newBuilder() {
 
         return new HttpFormBodyBuilder();
     }
@@ -36,7 +40,8 @@ public class HttpFormBodyBuilder {
      * @param value the value of the form data to add. Must not be null, but can be blank.
      * @return this HttpFormBodyBuilder instance, allowing for method chaining.
      */
-    public HttpFormBodyBuilder addFormData(@NonNull final String key, @NonNull final String value) {
+    @Contract("_, _ -> this")
+    public @NotNull HttpFormBodyBuilder addFormData(@NonNull final String key, @NonNull final String value) {
 
         if (key.isBlank()) {
             throw new IllegalArgumentException("Form data key must not be blank");
@@ -54,7 +59,8 @@ public class HttpFormBodyBuilder {
      * @param value the value of the form data to add. Can be null.
      * @return this HttpFormBodyBuilder instance, allowing for method chaining.
      */
-    public HttpFormBodyBuilder addNullableFormData(@NonNull final String key, final String value) {
+    @Contract("_, _ -> this")
+    public @NotNull HttpFormBodyBuilder addNullableFormData(@NonNull final String key, @Nullable final String value) {
 
         if (value != null) {
             return addFormData(key, value);
@@ -67,7 +73,8 @@ public class HttpFormBodyBuilder {
      *
      * @return the final form body string.
      */
-    public String build() {
+    @Contract(pure = true)
+    public @NotNull String build() {
 
         return String.join("&", formData);
     }

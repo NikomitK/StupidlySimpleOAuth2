@@ -6,6 +6,9 @@ import lombok.RequiredArgsConstructor;
 import net.nikomitk.ssoauth2.states.ClosableState;
 import net.nikomitk.ssoauth2.states.ExpiringState;
 import net.nikomitk.ssoauth2.states.OAuth2FlowState;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -56,7 +59,8 @@ final public class AwaitingAuthCode implements AuthCodeFlowState, ClosableState,
     }
 
     @Override
-    public Set<Class<? extends OAuth2FlowState>> getPossibleNextStates() {
+    @Contract(pure = true)
+    public @NotNull @Unmodifiable Set<Class<? extends OAuth2FlowState>> getPossibleNextStates() {
 
         return Set.of(Initial.class, AuthCodePresent.class);
     }

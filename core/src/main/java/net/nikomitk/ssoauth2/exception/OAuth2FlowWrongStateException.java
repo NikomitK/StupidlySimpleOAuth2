@@ -11,6 +11,7 @@ public class OAuth2FlowWrongStateException extends RuntimeException {
     }
 
     public OAuth2FlowWrongStateException() {
+
         super("The flow should be in a different state for that operation.");
     }
 

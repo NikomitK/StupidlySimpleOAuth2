@@ -1,7 +1,12 @@
 package net.nikomitk.ssoauth2.pubclient.authcodeflow;
 
+import lombok.NonNull;
 import net.nikomitk.ssoauth2.security.PKCE;
 import net.nikomitk.ssoauth2.util.CoreUtil;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Range;
 
 import java.io.IOException;
 
@@ -21,7 +26,7 @@ public class OAuth2BrowserFlow extends OAuth2AuthCodeFlow {
      *                          "string1 string2 string3"
      * @param pkce              the {@link PKCE} instance to use for the OAuth2 flow.
      */
-    public OAuth2BrowserFlow(final String wellKnownEndpoint, final String clientID, final String scope, final PKCE pkce) {
+    public OAuth2BrowserFlow(@NonNull final String wellKnownEndpoint, @NonNull final String clientID, @Nullable final String scope, @NonNull final PKCE pkce) {
 
         super(wellKnownEndpoint, clientID, scope, pkce);
     }
@@ -31,7 +36,7 @@ public class OAuth2BrowserFlow extends OAuth2AuthCodeFlow {
      *
      * @param configuration an initialized configuration object
      */
-    public OAuth2BrowserFlow(final AuthCodeFlowConfiguration configuration) {
+    public OAuth2BrowserFlow(@NonNull final AuthCodeFlowConfiguration configuration) {
 
         super(configuration);
     }
@@ -43,7 +48,8 @@ public class OAuth2BrowserFlow extends OAuth2AuthCodeFlow {
      * @throws RuntimeException when the browser can not be opened
      */
     @Override
-    public OAuth2AuthCodeFlow startFlow(final int port) {
+    @Contract("_ -> this")
+    public @NotNull OAuth2AuthCodeFlow startFlow(@Range(from = 0, to = 65535) final int port) {
 
         super.startFlow(port);
         try {

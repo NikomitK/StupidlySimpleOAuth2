@@ -1,5 +1,9 @@
 package net.nikomitk.ssoauth2.states;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Unmodifiable;
+
 import java.util.Set;
 
 /**
@@ -12,6 +16,9 @@ public interface OAuth2FlowState {
      *
      * @return the set of possible next states.
      */
+    @Contract(pure = true)
+    @NotNull
+    @Unmodifiable
     Set<Class<? extends OAuth2FlowState>> getPossibleNextStates();
 
 }

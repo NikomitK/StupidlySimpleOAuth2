@@ -2,6 +2,9 @@ package net.nikomitk.ssoauth2.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.NonNull;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -10,12 +13,12 @@ import java.time.Instant;
  */
 public record OAuth2TokenResponse(
 
-        @JsonProperty("access_token") String accessToken,
-        @JsonProperty("token_type") String tokenType,
+        @JsonProperty("access_token") @NonNull String accessToken,
+        @JsonProperty("token_type") @NonNull String tokenType,
         @JsonProperty("expires_in") int expiresIn,
         @JsonProperty("refresh_token") String refreshToken,
         // set when Jackson creates the instance, i.e. when the response is parsed
-        @JsonIgnore Instant receivedAt) {
+        @JsonIgnore @NotNull Instant receivedAt) {
 
     public OAuth2TokenResponse {
 
@@ -24,7 +27,7 @@ public record OAuth2TokenResponse(
         }
     }
 
-    public OAuth2TokenResponse(String accessToken, String tokenType, int expiresIn, String refreshToken) {
+    public OAuth2TokenResponse(@NonNull String accessToken, @NonNull String tokenType, int expiresIn, @Nullable String refreshToken) {
 
         this(accessToken, tokenType, expiresIn, refreshToken, Instant.now());
     }

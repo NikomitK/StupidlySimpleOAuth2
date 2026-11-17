@@ -11,6 +11,9 @@ import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
 import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
 import net.nikomitk.ssoauth2.exception.OAuth2RequestException;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Range;
 
 import java.awt.Desktop;
 import java.io.IOException;
@@ -54,7 +57,8 @@ final public class CoreUtil {
     /**
     * @return the shared, immutable HTTP client with the library's default timeouts
     */
-    public static HttpClient defaultHttpClient() {
+    @Contract(pure = true)
+    public static @NotNull HttpClient defaultHttpClient() {
 
         return DefaultHttpClientHolder.INSTANCE;
     }
@@ -64,7 +68,8 @@ final public class CoreUtil {
      *
      * @return a new, default configured ObjectMapper
      */
-    public static ObjectMapper createObjectMapper() {
+    @Contract("-> new")
+    public static @NotNull ObjectMapper createObjectMapper() {
 
         return new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
@@ -75,14 +80,15 @@ final public class CoreUtil {
      * @param uri the URI the request is sent to
      * @return a request builder to which the method, headers and body can be added
      */
-    public static HttpRequest.Builder requestBuilder(@NonNull final URI uri) {
+    @Contract("_ -> new")
+    public static @NotNull HttpRequest.Builder requestBuilder(@NonNull final URI uri) {
 
         return HttpRequest.newBuilder(uri)
                           .timeout(DEFAULT_HTTP_TIMEOUT)
                           .header("User-Agent", DEFAULT_USER_AGENT);
     }
 
-    public static void openBrowser(final String url) throws UnsupportedOperationException, IOException {
+    public static void openBrowser(@NonNull final String url) throws UnsupportedOperationException, IOException {
 
         final var osName = System.getProperty("os.name");
 
@@ -109,7 +115,8 @@ final public class CoreUtil {
      * @return the created HTTP server.
      * @throws IOException If the bound port is already in use, an IOException will be thrown.
      */
-    public static HttpServer createHttpServer(final int port) throws IOException {
+    @Contract("_ -> new")
+    public static @NotNull HttpServer createHttpServer(@Range(from = 0, to = 65535) final int port) throws IOException {
 
         final InetSocketAddress address = new InetSocketAddress(InetAddress.getLoopbackAddress(), port);
 
@@ -128,7 +135,7 @@ final public class CoreUtil {
      * @param responseBody the response body to send. It will be encoded as UTF-8.
      * @throws IOException If an I/O error occurs while sending the response.
      */
-    public static void sendResponse(final HttpExchange exchange, final int responseCode, final String responseBody) throws IOException {
+    public static void sendResponse(@NonNull final HttpExchange exchange, final int responseCode, @NonNull final String responseBody) throws IOException {
 
         try (exchange) {
             final byte[] body = responseBody.getBytes(StandardCharsets.UTF_8);
@@ -148,7 +155,7 @@ final public class CoreUtil {
      * @return a random string of the given byte count, encoded as a URL-safe Base64 string without padding.
      * @throws IllegalArgumentException if byteCount is negative
      */
-    public static String generateRandomString(final int byteCount) {
+    public static @NotNull String generateRandomString(@Range(from = 0, to = Integer.MAX_VALUE) final int byteCount) {
 
         return generateRandomString(byteCount, DEFAULT_URL_ENCODER::encodeToString);
     }
@@ -161,7 +168,7 @@ final public class CoreUtil {
      * @return a random string of the given byte count, encoded using the provided encoder function.
      * @throws IllegalArgumentException if byteCount is negative.
      */
-    public static String generateRandomString(final int byteCount, @NonNull final Function<byte[], String> encoder) {
+    public static String generateRandomString(@Range(from = 0, to = Integer.MAX_VALUE) final int byteCount, @NonNull final Function<byte[], String> encoder) {
 
         if (byteCount < 0) {
             throw new IllegalArgumentException("byteCount must be non-negative");
@@ -175,7 +182,8 @@ final public class CoreUtil {
      *
      * @return a ScheduledThreadPoolExecutor with a single daemon thread named "oauth2-timeout".
      */
-    public static ScheduledThreadPoolExecutor createScheduler() {
+    @Contract("-> new")
+    public static @NotNull ScheduledThreadPoolExecutor createScheduler() {
 
         final ScheduledThreadPoolExecutor s = new ScheduledThreadPoolExecutor(1, Thread.ofPlatform()
                                                                                        .name("oauth2-timeout")
@@ -192,7 +200,8 @@ final public class CoreUtil {
      * @param objectMapper the ObjectMapper to use
      * @return an initialized instance of OAuth2Endpoint
      */
-    public static OAuth2Endpoint queryWellKnownEndpoint(@NonNull final HttpClient client, @NonNull final String wellKnownEndpoint, @NonNull final ObjectMapper objectMapper) {
+    @Contract("_, _, _ -> new")
+    public static @NotNull OAuth2Endpoint queryWellKnownEndpoint(@NonNull final HttpClient client, @NonNull final String wellKnownEndpoint, @NonNull final ObjectMapper objectMapper) {
 
         try {
             final HttpRequest request = requestBuilder(URI.create(wellKnownEndpoint))
@@ -216,7 +225,8 @@ final public class CoreUtil {
      * @param wellKnownEndpoint a valid URI to the well known endpoint
      * @return an initialized instance of OAuth2Endpoint
      */
-    public static OAuth2Endpoint queryWellKnownEndpoint(final String wellKnownEndpoint) {
+    @Contract("_ -> new")
+    public static @NotNull OAuth2Endpoint queryWellKnownEndpoint(@NonNull final String wellKnownEndpoint) {
 
         return queryWellKnownEndpoint(defaultHttpClient(), wellKnownEndpoint, DEFAULT_OBJECT_MAPPER);
     }
@@ -227,7 +237,8 @@ final public class CoreUtil {
      * @param request the token request
      * @return the parsed token response
      */
-    public static OAuth2TokenResponse requestToken(@NonNull final HttpRequest request) throws IOException, InterruptedException, OAuth2RequestException {
+    @Contract("_ -> new")
+    public static @NotNull OAuth2TokenResponse requestToken(@NonNull final HttpRequest request) throws IOException, InterruptedException, OAuth2RequestException {
 
         return requestToken(defaultHttpClient(), request, DEFAULT_OBJECT_MAPPER);
     }
@@ -240,7 +251,8 @@ final public class CoreUtil {
      * @param objectMapper the ObjectMapper used to parse the response
      * @return the parsed token response
      */
-    public static OAuth2TokenResponse requestToken(@NonNull final HttpClient httpClient, @NonNull final HttpRequest request, @NonNull final ObjectMapper objectMapper) throws IOException, InterruptedException, OAuth2RequestException {
+    @Contract("_, _, _ -> new")
+    public static @NotNull OAuth2TokenResponse requestToken(@NonNull final HttpClient httpClient, @NonNull final HttpRequest request, @NonNull final ObjectMapper objectMapper) throws IOException, InterruptedException, OAuth2RequestException {
 
         final var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         checkRequestException(response);
@@ -253,7 +265,8 @@ final public class CoreUtil {
      * @param tokenResponse the parsed token response
      * @return the access token and the instant until it is valid
      */
-    public static OAuth2AccessToken createAccessToken(@NonNull final OAuth2TokenResponse tokenResponse) {
+    @Contract("_ -> new")
+    public static @NotNull OAuth2AccessToken createAccessToken(@NonNull final OAuth2TokenResponse tokenResponse) {
 
         final Instant validUntil;
         if (tokenResponse.expiresIn() > 0) {
@@ -265,14 +278,15 @@ final public class CoreUtil {
         return new OAuth2AccessToken(tokenResponse.accessToken(), validUntil);
     }
 
-    public static void checkRequestException(final HttpResponse<String> response) throws OAuth2RequestException {
+    public static void checkRequestException(@NonNull final HttpResponse<String> response) throws OAuth2RequestException {
 
         if (response.statusCode() != 200) {
             throw new OAuth2RequestException(response);
         }
     }
 
-    public static String urlEncode(final String value) {
+    @Contract(pure = true)
+    public static @NotNull String urlEncode(@NonNull final String value) {
 
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }

@@ -5,6 +5,7 @@ module net.nikomitk.ssoauth2 {
     requires jdk.httpserver;
     requires com.fasterxml.jackson.databind;
     requires static lombok;
+    requires static org.jetbrains.annotations;
     requires java.desktop;
 
     exports net.nikomitk.ssoauth2.dto;

@@ -2,6 +2,7 @@ package net.nikomitk.ssoauth2.pubclient.authcodeflow;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import lombok.NonNull;
 import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowInterruptedException;
@@ -16,6 +17,10 @@ import net.nikomitk.ssoauth2.states.AuthorizedState;
 import net.nikomitk.ssoauth2.util.CoreUtil;
 import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
 import net.nikomitk.ssoauth2.util.UrlUtils;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Range;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -50,7 +55,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
      *                          "string1 string2 string3"
      * @param pkce              the {@link PKCE} instance to use for the OAuth2 flow.
      */
-    public OAuth2AuthCodeFlow(final String wellKnownEndpoint, final String clientID, final String scope, final PKCE pkce) {
+    public OAuth2AuthCodeFlow(@NonNull final String wellKnownEndpoint, @NonNull final String clientID, @Nullable final String scope, @NonNull final PKCE pkce) {
 
         this(new AuthCodeFlowConfiguration(wellKnownEndpoint, clientID, scope, pkce));
     }
@@ -60,7 +65,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
      *
      * @param configuration an initialized configuration object
      */
-    public OAuth2AuthCodeFlow(final AuthCodeFlowConfiguration configuration) {
+    public OAuth2AuthCodeFlow(@NonNull final AuthCodeFlowConfiguration configuration) {
 
         this(configuration, new Object());
     }
@@ -77,7 +82,8 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
      *
      * @return the authorization URI
      */
-    public String getAuthUri() {
+    @Contract(pure = true)
+    public @NotNull String getAuthUri() {
 
         final var currentState = getState();
         if (currentState instanceof final AwaitingAuthCode awaitingAuthCode) {
@@ -97,7 +103,8 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
      * @return the instance this was called on
      */
     @Override
-    public OAuth2AuthCodeFlow startFlow() {
+    @Contract("-> this")
+    public @NotNull OAuth2AuthCodeFlow startFlow() {
 
         return startFlow(0);
     }
@@ -108,7 +115,9 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
      *
      * @return the instance this was called on
      */
-    public OAuth2AuthCodeFlow requestAccessToken() {
+    @Override
+    @Contract("-> this")
+    public @NotNull OAuth2AuthCodeFlow requestAccessToken() {
 
         boolean waited = false;
 
@@ -177,7 +186,9 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
         }
     }
 
-    public OAuth2AuthCodeFlow refreshAccessToken() {
+    @Override
+    @Contract("-> this")
+    public @NotNull OAuth2AuthCodeFlow refreshAccessToken() {
 
         synchronized (lock) {
             if (getState() instanceof final RefreshTokenPresent refreshTokenPresent) {
@@ -212,7 +223,8 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
     }
 
     @Override
-    public OAuth2AccessToken getAccessToken() {
+    @Contract(pure = true)
+    public @NotNull OAuth2AccessToken getAccessToken() {
 
         final var currentState = getState();
         if (currentState instanceof final AuthorizedState authorizedState) {
@@ -231,7 +243,8 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
      * @param port the port to start the http server on
      * @return the instance this was called on
      */
-    public OAuth2AuthCodeFlow startFlow(final int port) {
+    @Contract("_ -> this")
+    public @NotNull OAuth2AuthCodeFlow startFlow(@Range(from = 0, to = 65535) final int port) {
 
         synchronized (lock) {
 
@@ -286,7 +299,8 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
 
     private void redirectExchangeHandler(final HttpExchange exchange) throws IOException {
 
-        if(!exchange.getRequestMethod().equals("GET")) {
+        if (!exchange.getRequestMethod()
+                     .equals("GET")) {
             CoreUtil.sendResponse(exchange, 405, "Method not allowed. You can now close this window.");
         }
         synchronized (lock) {
