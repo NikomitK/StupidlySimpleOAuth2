@@ -1,9 +1,8 @@
-[![Maven Central Version](https://img.shields.io/maven-central/v/net.nikomitk/ssoauth2-client)](https://central.sonatype.com/artifact/net.nikomitk/ssoauth2-client)
-
+[![Maven Central Version](https://img.shields.io/maven-central/v/net.nikomitk/ssoauth2-client)](https://central.sonatype.com/artifact/net.nikomitk/ssoauth2-client) [![Codeberg Snapshot](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Fcodeberg.org%2Fapi%2Fpackages%2Fnikomitk%2Fmaven%2Fnet%2Fnikomitk%2Fssoauth2%2Fssoauth2-client-core%2Fmaven-metadata.xml&label=codeberg%20snapshot)](https://codeberg.org/nikomitk/-/packages/maven/net.nikomitk.ssoauth2%3Assoauth2-client-core)
 # Stupidly Simple OAuth2
 
 This is my personal OAuth2 library for use in locally installed java applications.
-It is designed to be as simple as possible.
+It is designed to be as simple to use as possible, while still conforming to the relevant RFCs.
 The only dependency is on [FasterXML/jackson](https://github.com/FasterXML/jackson) for JSON parsing.
 
 ## Why this exists
@@ -17,16 +16,42 @@ That's why I created my own.
 
 ```xml
 <dependency>
-    <groupId>net.nikomitk</groupId>
-    <artifactId>ssoauth2-client</artifactId>
-    <version>0.1</version>
+    <groupId>net.nikomitk.ssoauth2</groupId>
+    <artifactId>ssoauth2-client-public</artifactId>
+    <version>0.3</version>
 </dependency>
+```
+
+Or include the latest snapshot release from the snapshot repository hosted on codeberg:
+
+```xml
+
+<repositories>
+    <repository>
+        <id>codeberg</id>
+        <url>https://codeberg.org/api/packages/nikomitk/maven</url>
+        <releases>
+            <enabled>false</enabled>
+        </releases>
+        <snapshots>
+            <enabled>true</enabled>
+        </snapshots>
+    </repository>
+</repositories>
+<dependencies>
+  ...
+  <dependency>
+      <groupId>net.nikomitk.ssoauth2</groupId>
+      <artifactId>ssoauth2-client-public</artifactId>
+      <version>0.3-SNAPSHOT</version>
+  </dependency>
+</dependencies>
 ```
 
 2. Create an instance of a flow and initialize it:
 
 ```java
-import net.nikomitk.ssoauth2.OAuth2Flow;
+import net.nikomitk.ssoauth2.flows.types.OAuth2Flow;
 import net.nikomitk.ssoauth2.pubclient.authcodeflow.OAuth2BrowserFlow;
 import net.nikomitk.ssoauth2.security.PKCE;
 
@@ -47,7 +72,7 @@ flow.getAccessToken(); // Getter for the access token stored in the flow
 For simpler use, you can also chain these methods:
 
 ```java
-flow.requestAccessToken().refreshAccessToken().getAccessToken(); // Getter for the access token stored in the flow
+flow.requestAccessToken().refreshAccessToken().getAccessToken();
 ```
 
 ## Available flows
