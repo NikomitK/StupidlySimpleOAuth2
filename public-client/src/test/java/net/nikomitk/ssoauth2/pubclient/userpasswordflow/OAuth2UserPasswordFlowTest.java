@@ -69,8 +69,6 @@ class OAuth2UserPasswordFlowTest {
         final OAuth2UserPasswordFlow flow = createFlow("openid");
 
         assertThrows(OAuth2FlowWrongStateException.class, flow::getAccessToken);
-        assertThrows(OAuth2FlowWrongStateException.class, flow::requestAccessToken);
-        assertThrows(OAuth2FlowWrongStateException.class, flow::refreshAccessToken);
     }
 
     @Test

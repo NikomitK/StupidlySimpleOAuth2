@@ -286,6 +286,9 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
 
     private void redirectExchangeHandler(final HttpExchange exchange) throws IOException {
 
+        if(!exchange.getRequestMethod().equals("GET")) {
+            CoreUtil.sendResponse(exchange, 405, "Method not allowed. You can now close this window.");
+        }
         synchronized (lock) {
             if (getState() instanceof final AwaitingAuthCode awaitingAuthCode) {
 

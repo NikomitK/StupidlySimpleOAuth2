@@ -10,4 +10,8 @@ public class OAuth2FlowWrongStateException extends RuntimeException {
         super(String.format("The current state is %s, but the possible states are %s", currentState, String.join(", ", possibleStates)));
     }
 
+    public OAuth2FlowWrongStateException() {
+        super("The flow should be in a different state for that operation.");
+    }
+
 }
