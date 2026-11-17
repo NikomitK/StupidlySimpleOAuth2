@@ -27,6 +27,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.function.Function;
@@ -37,7 +38,8 @@ final public class CoreUtil {
     private static final SecureRandom DEFAULT_SECURE_RANDOM = new SecureRandom();
     private static final ObjectMapper DEFAULT_OBJECT_MAPPER = createObjectMapper();
     public static final Duration DEFAULT_HTTP_TIMEOUT = Duration.ofSeconds(15);
-    public static final String DEFAULT_USER_AGENT = "StupidlySimpleOAuth2/0.3";
+    public static final String DEFAULT_USER_AGENT = "StupidlySimpleOAuth2/" +
+        Objects.requireNonNullElse(CoreUtil.class.getPackage().getImplementationVersion(), "dev");
     private static final Base64.Encoder DEFAULT_URL_ENCODER = Base64.getUrlEncoder()
                                                                     .withoutPadding();
 
