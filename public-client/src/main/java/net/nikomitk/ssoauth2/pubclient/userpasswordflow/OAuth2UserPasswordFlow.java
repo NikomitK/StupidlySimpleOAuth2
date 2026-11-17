@@ -4,6 +4,7 @@ import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
 import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowInterruptedException;
+import net.nikomitk.ssoauth2.exception.OAuth2FlowWrongStateException;
 import net.nikomitk.ssoauth2.flows.OAuth2FlowBase;
 import net.nikomitk.ssoauth2.flows.types.OAuth2Flow;
 import net.nikomitk.ssoauth2.util.CoreUtil;
@@ -13,6 +14,8 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.http.HttpRequest;
+
+import lombok.NonNull;
 
 import static net.nikomitk.ssoauth2.util.CoreUtil.createAccessToken;
 import static net.nikomitk.ssoauth2.util.CoreUtil.requestBuilder;
@@ -44,7 +47,7 @@ public class OAuth2UserPasswordFlow extends OAuth2FlowBase {
      * @param username          the username to use
      * @param password          the password to use
      */
-    public OAuth2UserPasswordFlow(final String wellKnownEndpoint, final String clientID, final String username, final String password, final String scope) {
+    public OAuth2UserPasswordFlow(@NonNull final String wellKnownEndpoint, @NonNull final String clientID, @NonNull final String username, @NonNull final String password, final String scope) {
 
         super(new Object());
         this.endpoint = CoreUtil.queryWellKnownEndpoint(wellKnownEndpoint);
@@ -101,7 +104,9 @@ public class OAuth2UserPasswordFlow extends OAuth2FlowBase {
 
     @Override
     public OAuth2AccessToken getAccessToken() {
-
+        if(lastOAuth2TokenResponse == null) {
+            throw new OAuth2FlowWrongStateException();
+        }
         return lastOAuth2TokenResponse;
     }
 

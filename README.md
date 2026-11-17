@@ -1,4 +1,5 @@
 [![Maven Central Version](https://img.shields.io/maven-central/v/net.nikomitk/ssoauth2-client)](https://central.sonatype.com/artifact/net.nikomitk/ssoauth2-client) [![Codeberg Snapshot](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Fcodeberg.org%2Fapi%2Fpackages%2Fnikomitk%2Fmaven%2Fnet%2Fnikomitk%2Fssoauth2%2Fssoauth2-client-core%2Fmaven-metadata.xml&label=codeberg%20snapshot)](https://codeberg.org/nikomitk/-/packages/maven/net.nikomitk.ssoauth2%3Assoauth2-client-core)
+
 # Stupidly Simple OAuth2
 
 This is my personal OAuth2 library for use in locally installed java applications.
