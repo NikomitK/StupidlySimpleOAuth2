@@ -5,6 +5,9 @@ import com.sun.net.httpserver.HttpExchange;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.net.*;
 import java.nio.charset.StandardCharsets;
@@ -22,7 +25,8 @@ final public class UrlUtils {
      * @param parameterName the name of the query parameter to retrieve.
      * @return the value of the query parameter, or null if the parameter is not present in the request URI.
      */
-    public static String getQueryParameter(@NonNull final HttpExchange exchange, @NonNull final String parameterName) {
+    @Contract(pure = true)
+    public static @Nullable String getQueryParameter(@NonNull final HttpExchange exchange, @NonNull final String parameterName) {
 
         final String query = exchange.getRequestURI()
                                      .getRawQuery();
@@ -39,7 +43,8 @@ final public class UrlUtils {
      * @param parameterName the name of the query parameter to retrieve.
      * @return the value of the query parameter, or null if the parameter is not present in the raw query string.
      */
-    public static String getQueryParameter(@NonNull final String rawQuery, @NonNull final String parameterName) {
+    @Contract(pure = true)
+    public static @Nullable String getQueryParameter(@NonNull final String rawQuery, @NonNull final String parameterName) {
 
         if (rawQuery.isBlank()) {
             return null;
@@ -61,7 +66,8 @@ final public class UrlUtils {
      * @param url the string to check.
      * @return true if the string is a valid URL, false otherwise.
      */
-    public static boolean isValidUrl(final String url) {
+    @Contract(value = "null -> false", pure = true)
+    public static boolean isValidUrl(@Nullable final String url) {
 
         if (url == null || url.isBlank()) {
             return false;
@@ -100,7 +106,8 @@ final public class UrlUtils {
          * @param basepath the basepath of the url to build. Must be a valid URL without query parameters.
          * @return a new Builder instance with the specified base path.
          */
-        public static Builder withBasePath(final String basepath) {
+        @Contract("_ -> new")
+        public static @NotNull Builder withBasePath(@NonNull final String basepath) {
 
             return new Builder(basepath);
         }
@@ -112,7 +119,8 @@ final public class UrlUtils {
          * @param value the value of the query parameter to add. Must not be null, but can be blank.
          * @return this Builder instance, allowing for method chaining.
          */
-        public Builder addQueryParameter(@NonNull final String key, @NonNull final String value) {
+        @Contract("_, _ -> this")
+        public @NotNull Builder addQueryParameter(@NonNull final String key, @NonNull final String value) {
 
             if (key.isBlank()) {
                 throw new IllegalArgumentException("Query parameter key must not be blank");
@@ -129,7 +137,8 @@ final public class UrlUtils {
          * @param value the value of the query parameter to add. May be null.
          * @return this Builder instance, allowing for method chaining.
          */
-        public Builder addNullableQueryParameter(@NonNull final String key, final String value) {
+        @Contract("_, _ -> this")
+        public @NotNull Builder addNullableQueryParameter(@NonNull final String key, @Nullable final String value) {
 
             if (value != null) {
                 return addQueryParameter(key, value);
@@ -142,7 +151,8 @@ final public class UrlUtils {
          *
          * @return the final URL string.
          */
-        public String build() {
+        @Contract(pure = true)
+        public @NotNull String build() {
 
             String url = basepath;
             if (query.length() > 0) {

@@ -11,4 +11,13 @@
         <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
     </Match>
 
+    <!--
+        Lombok @NonNull on constructor parameters of non-final flow classes throws NullPointerException
+        on invalid input. Finalizer attacks (OBJ11-J) are not a concern on Java 21 (finalization is
+        deprecated for removal per JEP 421).
+    -->
+    <Match>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+    </Match>
+
 </FindBugsFilter>

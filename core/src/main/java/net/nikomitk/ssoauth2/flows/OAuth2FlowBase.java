@@ -1,12 +1,16 @@
 package net.nikomitk.ssoauth2.flows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.NonNull;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowInvalidTransitionException;
 import net.nikomitk.ssoauth2.flows.types.OAuth2Flow;
 import net.nikomitk.ssoauth2.states.ClosableState;
 import net.nikomitk.ssoauth2.states.ExpiringState;
 import net.nikomitk.ssoauth2.states.OAuth2FlowState;
+import net.nikomitk.ssoauth2.states.StatelessFlowState;
 import net.nikomitk.ssoauth2.util.CoreUtil;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
 import java.util.concurrent.ScheduledExecutorService;
@@ -27,19 +31,19 @@ public abstract class OAuth2FlowBase implements OAuth2Flow {
     /**
      * Initializes common attributes like the ObjectMapper and OAuth2TokenResponse
      */
-    protected OAuth2FlowBase(final Object lock, final OAuth2FlowState initialState) {
+    protected OAuth2FlowBase(@NonNull final Object lock, @NonNull final OAuth2FlowState initialState) {
 
         this.lock = lock;
         this.state = initialState;
     }
 
     /**
-     * Initializes the common lock object for synchronizing state transitions. The initial state is set to null.
+     * Initializes the common lock object for synchronizing state transitions. The initial state is set to StatelessFlowState.
      * @param lock the object to lock on.
      */
-    protected OAuth2FlowBase(final Object lock) {
+    protected OAuth2FlowBase(@NonNull final Object lock) {
 
-        this(lock, null);
+        this(lock, new StatelessFlowState());
     }
 
     /**
@@ -48,11 +52,11 @@ public abstract class OAuth2FlowBase implements OAuth2Flow {
      * @param newState the initialized new state to transition to.
      * @throws OAuth2FlowInvalidTransitionException if the class of the new state is not in the list of possible next states of the current state.
      */
-    protected void transitionTo(final OAuth2FlowState newState) throws OAuth2FlowInvalidTransitionException {
+    protected void transitionTo(@NonNull final OAuth2FlowState newState) throws OAuth2FlowInvalidTransitionException {
 
         synchronized (lock) {
-            if (state != null && !state.getPossibleNextStates()
-                                       .contains(newState.getClass())) {
+            if (!state.getPossibleNextStates()
+                      .contains(newState.getClass())) {
                 throw new OAuth2FlowInvalidTransitionException("Invalid transition from " + state.getClass()
                                                                                                  .getSimpleName() + " to " + newState.getClass()
                                                                                                                                      .getSimpleName());
@@ -77,7 +81,7 @@ public abstract class OAuth2FlowBase implements OAuth2Flow {
      * @param timeoutState the state to transition to after the delay.
      * @throws OAuth2FlowInvalidTransitionException if the class of the new state is not in the list of possible next states of the current state.
      */
-    protected void transitionWithTimeout(final ExpiringState newState, final Duration delay, final OAuth2FlowState timeoutState) throws OAuth2FlowInvalidTransitionException {
+    protected void transitionWithTimeout(@NonNull final ExpiringState newState, @NonNull final Duration delay, @NonNull final OAuth2FlowState timeoutState) throws OAuth2FlowInvalidTransitionException {
 
         synchronized (lock) {
             transitionTo(newState);
@@ -88,7 +92,8 @@ public abstract class OAuth2FlowBase implements OAuth2Flow {
     /**
      * @return the current state of the flow.
      */
-    protected OAuth2FlowState getState() {
+    @Contract(pure = true)
+    protected @NotNull OAuth2FlowState getState() {
 
         return state;
     }

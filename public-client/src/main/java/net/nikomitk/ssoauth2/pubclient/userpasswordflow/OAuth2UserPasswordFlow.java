@@ -1,5 +1,6 @@
 package net.nikomitk.ssoauth2.pubclient.userpasswordflow;
 
+import lombok.NonNull;
 import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
 import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
@@ -9,13 +10,14 @@ import net.nikomitk.ssoauth2.flows.OAuth2FlowBase;
 import net.nikomitk.ssoauth2.flows.types.OAuth2Flow;
 import net.nikomitk.ssoauth2.util.CoreUtil;
 import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.http.HttpRequest;
-
-import lombok.NonNull;
 
 import static net.nikomitk.ssoauth2.util.CoreUtil.createAccessToken;
 import static net.nikomitk.ssoauth2.util.CoreUtil.requestBuilder;
@@ -47,7 +49,7 @@ public class OAuth2UserPasswordFlow extends OAuth2FlowBase {
      * @param username          the username to use
      * @param password          the password to use
      */
-    public OAuth2UserPasswordFlow(@NonNull final String wellKnownEndpoint, @NonNull final String clientID, @NonNull final String username, @NonNull final String password, final String scope) {
+    public OAuth2UserPasswordFlow(@NonNull final String wellKnownEndpoint, @NonNull final String clientID, @NonNull final String username, @NonNull final String password, @Nullable final String scope) {
 
         super(new Object());
         this.endpoint = CoreUtil.queryWellKnownEndpoint(wellKnownEndpoint);
@@ -58,7 +60,8 @@ public class OAuth2UserPasswordFlow extends OAuth2FlowBase {
     }
 
     @Override
-    public OAuth2UserPasswordFlow startFlow() {
+    @Contract("-> this")
+    public @NotNull OAuth2UserPasswordFlow startFlow() {
 
         final String body = HttpFormBodyBuilder
                                                .newBuilder()
@@ -78,7 +81,8 @@ public class OAuth2UserPasswordFlow extends OAuth2FlowBase {
     }
 
     @Override
-    public OAuth2UserPasswordFlow requestAccessToken() {
+    @Contract("-> this")
+    public @NotNull OAuth2UserPasswordFlow requestAccessToken() {
 
         if (this.httpRequest == null) {
             startFlow();
@@ -97,14 +101,17 @@ public class OAuth2UserPasswordFlow extends OAuth2FlowBase {
     }
 
     @Override
-    public OAuth2Flow refreshAccessToken() {
+    @Contract("-> this")
+    public @NotNull OAuth2Flow refreshAccessToken() {
 
         return this.requestAccessToken();
     }
 
     @Override
-    public OAuth2AccessToken getAccessToken() {
-        if(lastOAuth2TokenResponse == null) {
+    @Contract(pure = true)
+    public @NotNull OAuth2AccessToken getAccessToken() {
+
+        if (lastOAuth2TokenResponse == null) {
             throw new OAuth2FlowWrongStateException();
         }
         return lastOAuth2TokenResponse;

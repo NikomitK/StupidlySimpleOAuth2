@@ -2,6 +2,7 @@ module net.nikomitk.ssoauth2.pubclient {
     
     requires transitive net.nikomitk.ssoauth2;
     requires static lombok;
+    requires static org.jetbrains.annotations;
     requires transitive java.net.http;
     requires jdk.httpserver;
 

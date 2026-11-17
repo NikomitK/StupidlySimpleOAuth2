@@ -1,7 +1,10 @@
 package net.nikomitk.ssoauth2.pubclient;
 
+import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import net.nikomitk.ssoauth2.util.HttpFormBodyBuilder;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 import java.net.URI;
 import java.net.http.HttpRequest;
@@ -12,7 +15,8 @@ import static net.nikomitk.ssoauth2.util.CoreUtil.requestBuilder;
 public class PubClientUtil {
 
 
-    public static HttpRequest prepareRefreshRequest(final String refreshToken, final PublicClientConfiguration configuration) {
+    @Contract("_, _ -> new")
+    public static @NotNull HttpRequest prepareRefreshRequest(@NonNull final String refreshToken, @NonNull final PublicClientConfiguration configuration) {
 
         final String body = HttpFormBodyBuilder.newBuilder()
                                                .addFormData("grant_type", "refresh_token")
