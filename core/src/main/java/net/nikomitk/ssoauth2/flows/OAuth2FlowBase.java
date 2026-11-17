@@ -7,9 +7,10 @@ import net.nikomitk.ssoauth2.flows.types.OAuth2Flow;
 import net.nikomitk.ssoauth2.states.ClosableState;
 import net.nikomitk.ssoauth2.states.ExpiringState;
 import net.nikomitk.ssoauth2.states.OAuth2FlowState;
+import net.nikomitk.ssoauth2.states.StatelessFlowState;
 import net.nikomitk.ssoauth2.util.CoreUtil;
 import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
 import java.util.concurrent.ScheduledExecutorService;
@@ -30,19 +31,19 @@ public abstract class OAuth2FlowBase implements OAuth2Flow {
     /**
      * Initializes common attributes like the ObjectMapper and OAuth2TokenResponse
      */
-    protected OAuth2FlowBase(@NonNull final Object lock, @Nullable final OAuth2FlowState initialState) {
+    protected OAuth2FlowBase(@NonNull final Object lock, @NonNull final OAuth2FlowState initialState) {
 
         this.lock = lock;
         this.state = initialState;
     }
 
     /**
-     * Initializes the common lock object for synchronizing state transitions. The initial state is set to null.
+     * Initializes the common lock object for synchronizing state transitions. The initial state is set to StatelessFlowState.
      * @param lock the object to lock on.
      */
     protected OAuth2FlowBase(@NonNull final Object lock) {
 
-        this(lock, null);
+        this(lock, new StatelessFlowState());
     }
 
     /**
@@ -54,8 +55,8 @@ public abstract class OAuth2FlowBase implements OAuth2Flow {
     protected void transitionTo(@NonNull final OAuth2FlowState newState) throws OAuth2FlowInvalidTransitionException {
 
         synchronized (lock) {
-            if (state != null && !state.getPossibleNextStates()
-                                       .contains(newState.getClass())) {
+            if (!state.getPossibleNextStates()
+                      .contains(newState.getClass())) {
                 throw new OAuth2FlowInvalidTransitionException("Invalid transition from " + state.getClass()
                                                                                                  .getSimpleName() + " to " + newState.getClass()
                                                                                                                                      .getSimpleName());
@@ -92,7 +93,7 @@ public abstract class OAuth2FlowBase implements OAuth2Flow {
      * @return the current state of the flow.
      */
     @Contract(pure = true)
-    protected @Nullable OAuth2FlowState getState() {
+    protected @NotNull OAuth2FlowState getState() {
 
         return state;
     }

@@ -16,7 +16,7 @@ public record OAuth2TokenResponse(
         @JsonProperty("access_token") @NonNull String accessToken,
         @JsonProperty("token_type") @NonNull String tokenType,
         @JsonProperty("expires_in") int expiresIn,
-        @JsonProperty("refresh_token") String refreshToken,
+        @JsonProperty("refresh_token") @Nullable String refreshToken,
         // set when Jackson creates the instance, i.e. when the response is parsed
         @JsonIgnore @NotNull Instant receivedAt) {
 
