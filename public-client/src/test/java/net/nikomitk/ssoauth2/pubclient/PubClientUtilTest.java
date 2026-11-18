@@ -49,7 +49,7 @@ class PubClientUtilTest {
 
         server.enqueue(new MockResponse.Builder().body("{}")
                                                  .build());
-        final PublicClientConfiguration config = new AuthCodeFlowConfiguration(createEndpoint(), "my-client", "openid profile", PKCE.S256);
+        final AuthCodeFlowConfiguration config = new AuthCodeFlowConfiguration(createEndpoint(), "my-client", "openid profile", PKCE.S256);
 
         final HttpRequest request = PubClientUtil.prepareRefreshRequest("my-refresh-token", config);
         CoreUtil.defaultHttpClient()
@@ -73,7 +73,7 @@ class PubClientUtilTest {
 
         server.enqueue(new MockResponse.Builder().body("{}")
                                                  .build());
-        final PublicClientConfiguration config = new AuthCodeFlowConfiguration(createEndpoint(), "my-client", null, PKCE.S256);
+        final AuthCodeFlowConfiguration config = new AuthCodeFlowConfiguration(createEndpoint(), "my-client", null, PKCE.S256);
 
         final HttpRequest request = PubClientUtil.prepareRefreshRequest("my-refresh-token", config);
         CoreUtil.defaultHttpClient()

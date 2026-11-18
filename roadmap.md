@@ -7,10 +7,10 @@ Here are some of the things I have planned for the future of this library.
   - [ ] device code
 - [ ] automatically refresh if expired
 - [ ] properly expose more customization possibilities
-  - [ ] used httpclient
+  - [x] used httpclient
   - [ ] logging
-  - [ ] user agent
-  - [ ] timeouts
+  - [x] user agent
+  - [x] timeouts
 - [ ] token revocation
   - [ ] automatically on reset()
   - [ ] externally callable method in flow
@@ -22,3 +22,4 @@ Here are some of the things I have planned for the future of this library.
   - [ ] customizable html for redirect page
   - [ ] customizable redirect urls
   - [ ] possibility to provide auth code from consuming projects web server
+

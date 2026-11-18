@@ -9,10 +9,12 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
 import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
+import net.nikomitk.ssoauth2.dto.OAuth2FlowConfiguration;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
 import net.nikomitk.ssoauth2.exception.OAuth2RequestException;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
 
 import java.awt.Desktop;
@@ -40,7 +42,13 @@ final public class CoreUtil {
 
     private static final SecureRandom DEFAULT_SECURE_RANDOM = new SecureRandom();
     private static final ObjectMapper DEFAULT_OBJECT_MAPPER = createObjectMapper();
+    /**
+     * Default HTTP request timeout (15 seconds).
+     */
     public static final Duration DEFAULT_HTTP_TIMEOUT = Duration.ofSeconds(15);
+    /**
+     * Default HTTP {@code User-Agent} header value.
+     */
     public static final String DEFAULT_USER_AGENT = "StupidlySimpleOAuth2/" + Objects.requireNonNullElse(CoreUtil.class.getPackage()
                                                                                                                        .getImplementationVersion(), "dev");
     private static final Base64.Encoder DEFAULT_URL_ENCODER = Base64.getUrlEncoder()
@@ -55,8 +63,10 @@ final public class CoreUtil {
     }
 
     /**
-    * @return the shared, immutable HTTP client with the library's default timeouts
-    */
+     * Returns the shared, immutable HTTP client with the library's default connect timeout.
+     *
+     * @return the shared, immutable HTTP client with the library's default timeouts
+     */
     @Contract(pure = true)
     public static @NotNull HttpClient defaultHttpClient() {
 
@@ -83,9 +93,36 @@ final public class CoreUtil {
     @Contract("_ -> new")
     public static @NotNull HttpRequest.Builder requestBuilder(@NonNull final URI uri) {
 
+        return requestBuilder(uri, DEFAULT_HTTP_TIMEOUT, DEFAULT_USER_AGENT);
+    }
+
+    /**
+     * Creates a request builder with the timeout and User-Agent from the given flow configuration.
+     *
+     * @param uri           the URI the request is sent to
+     * @param configuration the flow configuration providing the HTTP timeout and User-Agent
+     * @return a request builder to which the method, headers and body can be added
+     */
+    @Contract("_, _ -> new")
+    public static @NotNull HttpRequest.Builder requestBuilder(@NonNull final URI uri, @NonNull final OAuth2FlowConfiguration configuration) {
+
+        return requestBuilder(uri, configuration.httpTimeout(), configuration.userAgent());
+    }
+
+    /**
+     * Creates a request builder with the given timeout and User-Agent (falling back to the library defaults when null).
+     *
+     * @param uri         the URI the request is sent to
+     * @param httpTimeout the request timeout, or null to use {@link #DEFAULT_HTTP_TIMEOUT}
+     * @param userAgent   the User-Agent header value, or null to use {@link #DEFAULT_USER_AGENT}
+     * @return a request builder to which the method, headers and body can be added
+     */
+    @Contract("_, _, _ -> new")
+    public static @NotNull HttpRequest.Builder requestBuilder(@NonNull final URI uri, @Nullable final Duration httpTimeout, @Nullable final String userAgent) {
+
         return HttpRequest.newBuilder(uri)
-                          .timeout(DEFAULT_HTTP_TIMEOUT)
-                          .header("User-Agent", DEFAULT_USER_AGENT);
+                          .timeout(Objects.requireNonNullElse(httpTimeout, DEFAULT_HTTP_TIMEOUT))
+                          .header("User-Agent", Objects.requireNonNullElse(userAgent, DEFAULT_USER_AGENT));
     }
 
     public static void openBrowser(@NonNull final String url) throws UnsupportedOperationException, IOException {
@@ -204,9 +241,9 @@ final public class CoreUtil {
     public static @NotNull OAuth2Endpoint queryWellKnownEndpoint(@NonNull final HttpClient client, @NonNull final String wellKnownEndpoint, @NonNull final ObjectMapper objectMapper) {
 
         try {
-            final HttpRequest request = requestBuilder(URI.create(wellKnownEndpoint))
-                                                                                     .GET()
-                                                                                     .build();
+            final HttpRequest request = requestBuilder(URI.create(wellKnownEndpoint), null, null)
+                                                                                                 .GET()
+                                                                                                 .build();
             final var response = client.send(request, HttpResponse.BodyHandlers.ofString());
             checkRequestException(response);
             return objectMapper

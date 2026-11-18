@@ -29,7 +29,6 @@ import java.net.URI;
 import java.net.http.HttpRequest;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.time.Duration;
 import java.util.Objects;
 
 import static net.nikomitk.ssoauth2.util.CoreUtil.createAccessToken;
@@ -150,14 +149,14 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                                                        .build();
 
                 final HttpRequest request = requestBuilder(URI.create(this.configuration.endpoint()
-                                                                                        .getTokenEndpoint()))
-                                                                                                             .header("Content-Type", "application/x-www-form-urlencoded")
-                                                                                                             .method("POST", HttpRequest.BodyPublishers.ofString(body))
-                                                                                                             .build();
+                                                                                        .getTokenEndpoint()), this.configuration)
+                                                                                                                                 .header("Content-Type", "application/x-www-form-urlencoded")
+                                                                                                                                 .method("POST", HttpRequest.BodyPublishers.ofString(body))
+                                                                                                                                 .build();
 
                 try {
 
-                    final OAuth2TokenResponse tokenResponse = CoreUtil.requestToken(CoreUtil.defaultHttpClient(), request, objectMapper);
+                    final OAuth2TokenResponse tokenResponse = CoreUtil.requestToken(configuration.httpClient(), request, objectMapper);
 
                     final String refreshToken = tokenResponse.refreshToken();
                     if (refreshToken != null) {
@@ -196,7 +195,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
 
                 final HttpRequest request = PubClientUtil.prepareRefreshRequest(refreshTokenPresent.refreshToken(), configuration);
                 try {
-                    final OAuth2TokenResponse tokenResponse = CoreUtil.requestToken(CoreUtil.defaultHttpClient(), request, objectMapper);
+                    final OAuth2TokenResponse tokenResponse = CoreUtil.requestToken(configuration.httpClient(), request, objectMapper);
 
 
                     final String refreshToken = Objects.requireNonNullElse(tokenResponse.refreshToken(), refreshTokenPresent.refreshToken());
@@ -269,7 +268,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
 
             server.createContext("/oauth2/redirect", this::redirectExchangeHandler);
             server.start();
-            transitionWithTimeout(new AwaitingAuthCode(server, redirectUri, stateParam, codeVerifier, userUri), Duration.ofSeconds(120), new Initial());
+            transitionWithTimeout(new AwaitingAuthCode(server, redirectUri, stateParam, codeVerifier, userUri), configuration.authTimeout(), new Initial());
 
             return this;
         }
@@ -303,6 +302,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
         if (!exchange.getRequestMethod()
                      .equals("GET")) {
             CoreUtil.sendResponse(exchange, 405, "Method not allowed. You can now close this window.");
+            return;
         }
         synchronized (lock) {
             if (getState() instanceof final AwaitingAuthCode awaitingAuthCode) {
