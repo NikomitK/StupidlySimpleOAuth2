@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
 import net.nikomitk.ssoauth2.dto.OAuth2Endpoint;
+import net.nikomitk.ssoauth2.dto.OAuth2ErrorResponse;
 import net.nikomitk.ssoauth2.dto.OAuth2FlowConfiguration;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
 import net.nikomitk.ssoauth2.exception.OAuth2RequestException;
@@ -255,7 +256,7 @@ final public class CoreUtil {
                                                                                                  .GET()
                                                                                                  .build();
             final var response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            checkRequestException(response);
+            checkRequestException(response, objectMapper);
             return objectMapper
                                .readValue(response.body(), OAuth2Endpoint.class);
         } catch (final IOException e) {
@@ -308,7 +309,7 @@ final public class CoreUtil {
     public static @NotNull OAuth2TokenResponse requestToken(@NonNull final HttpClient httpClient, @NonNull final HttpRequest request, @NonNull final ObjectMapper objectMapper) throws IOException, InterruptedException, OAuth2RequestException {
 
         final var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        checkRequestException(response);
+        checkRequestException(response, objectMapper);
         return objectMapper.readValue(response.body(), OAuth2TokenResponse.class);
     }
 
@@ -339,8 +340,42 @@ final public class CoreUtil {
      */
     public static void checkRequestException(@NonNull final HttpResponse<String> response) throws OAuth2RequestException {
 
-        if (response.statusCode() != 200) {
-            throw new OAuth2RequestException(response);
+        checkRequestException(response, DEFAULT_OBJECT_MAPPER);
+    }
+
+    /**
+     * Verifies that the HTTP response status code is 200 OK, throwing an {@link OAuth2RequestException} otherwise.
+     *
+     * @param response     the HTTP response to check
+     * @param objectMapper the ObjectMapper used to parse an OAuth2 error response body
+     * @throws OAuth2RequestException if the status code is not 200
+     */
+    public static void checkRequestException(@NonNull final HttpResponse<String> response, @NonNull final ObjectMapper objectMapper) throws OAuth2RequestException {
+
+        if (response.statusCode() == 200) {
+            return;
+        }
+        final OAuth2ErrorResponse errorResponse = parseErrorResponse(response.body(), objectMapper);
+
+        throw new OAuth2RequestException(response, errorResponse);
+    }
+
+    /**
+     * Attempts to parse a JSON response body into an {@link OAuth2ErrorResponse}, returning null if the body is blank or not a valid OAuth2 error object.
+     *
+     * @param responseBody the raw HTTP response body
+     * @param objectMapper the ObjectMapper used to parse the body
+     * @return the parsed {@link OAuth2ErrorResponse}, or null if parsing fails
+     */
+    public static @Nullable OAuth2ErrorResponse parseErrorResponse(@Nullable final String responseBody, @NonNull final ObjectMapper objectMapper) {
+
+        if (responseBody == null || responseBody.isBlank()) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(responseBody, OAuth2ErrorResponse.class);
+        } catch (final IOException e) {
+            return null;
         }
     }
 
