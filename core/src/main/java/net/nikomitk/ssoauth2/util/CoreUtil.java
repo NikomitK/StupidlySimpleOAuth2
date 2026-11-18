@@ -37,6 +37,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.function.Function;
 
+/**
+ * Utility class providing shared HTTP, JSON, URL, and concurrency helpers for OAuth2 flows.
+ */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 final public class CoreUtil {
 
@@ -125,6 +128,13 @@ final public class CoreUtil {
                           .header("User-Agent", Objects.requireNonNullElse(userAgent, DEFAULT_USER_AGENT));
     }
 
+    /**
+     * Opens the default system browser at the given URL.
+     *
+     * @param url the URL to open in the browser
+     * @throws UnsupportedOperationException if opening a browser is not supported on the current platform
+     * @throws IOException                   if an I/O error occurs while launching the browser
+     */
     public static void openBrowser(@NonNull final String url) throws UnsupportedOperationException, IOException {
 
         final var osName = System.getProperty("os.name");
@@ -273,6 +283,9 @@ final public class CoreUtil {
      *
      * @param request the token request
      * @return the parsed token response
+     * @throws IOException            if an I/O error occurs when sending or receiving
+     * @throws InterruptedException   if the operation is interrupted
+     * @throws OAuth2RequestException if the server returns a non-200 HTTP status code
      */
     @Contract("_ -> new")
     public static @NotNull OAuth2TokenResponse requestToken(@NonNull final HttpRequest request) throws IOException, InterruptedException, OAuth2RequestException {
@@ -283,10 +296,13 @@ final public class CoreUtil {
     /**
      * Sends a token request.
      *
-     * @param httpClient the HTTP client to use
-     * @param request the token request
+     * @param httpClient   the HTTP client to use
+     * @param request      the token request
      * @param objectMapper the ObjectMapper used to parse the response
      * @return the parsed token response
+     * @throws IOException            if an I/O error occurs when sending or receiving
+     * @throws InterruptedException   if the operation is interrupted
+     * @throws OAuth2RequestException if the server returns a non-200 HTTP status code
      */
     @Contract("_, _, _ -> new")
     public static @NotNull OAuth2TokenResponse requestToken(@NonNull final HttpClient httpClient, @NonNull final HttpRequest request, @NonNull final ObjectMapper objectMapper) throws IOException, InterruptedException, OAuth2RequestException {
@@ -315,6 +331,12 @@ final public class CoreUtil {
         return new OAuth2AccessToken(tokenResponse.accessToken(), validUntil);
     }
 
+    /**
+     * Verifies that the HTTP response status code is 200 OK, throwing an {@link OAuth2RequestException} otherwise.
+     *
+     * @param response the HTTP response to check
+     * @throws OAuth2RequestException if the status code is not 200
+     */
     public static void checkRequestException(@NonNull final HttpResponse<String> response) throws OAuth2RequestException {
 
         if (response.statusCode() != 200) {
@@ -322,6 +344,12 @@ final public class CoreUtil {
         }
     }
 
+    /**
+     * URL-encodes the given string using UTF-8.
+     *
+     * @param value the string to encode
+     * @return the URL-encoded string
+     */
     @Contract(pure = true)
     public static @NotNull String urlEncode(@NonNull final String value) {
 

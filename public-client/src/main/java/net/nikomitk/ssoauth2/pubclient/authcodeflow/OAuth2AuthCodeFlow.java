@@ -186,6 +186,11 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
         }
     }
 
+    /**
+     * Refreshes the OAuth2 access token using the stored refresh token, as described in section 6 of RFC6749.
+     *
+     * @return the instance this was called on
+     */
     @Override
     @Contract("-> this")
     public @NotNull OAuth2AuthCodeFlow refreshAccessToken() {

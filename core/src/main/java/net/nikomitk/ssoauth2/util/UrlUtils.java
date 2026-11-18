@@ -15,6 +15,9 @@ import java.util.StringJoiner;
 
 import static net.nikomitk.ssoauth2.util.CoreUtil.urlEncode;
 
+/**
+ * Utility class for parsing query parameters, validating URLs, and building URLs with query strings.
+ */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 final public class UrlUtils {
 

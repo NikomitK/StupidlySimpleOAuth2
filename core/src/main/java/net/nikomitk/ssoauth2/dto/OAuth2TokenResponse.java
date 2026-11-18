@@ -10,6 +10,12 @@ import java.time.Instant;
 
 /**
  * Class used to represent the JSON response from an OAuth Authorization Server for the "AccessTokenResponse" described in Section 4.1.4 of RFC6749.
+ *
+ * @param accessToken  the access token issued by the authorization server
+ * @param tokenType    the type of the token issued
+ * @param expiresIn    the lifetime in seconds of the access token
+ * @param refreshToken the refresh token, which can be used to obtain new access tokens
+ * @param receivedAt   the instant when the token response was received
  */
 public record OAuth2TokenResponse(
 
@@ -20,6 +26,9 @@ public record OAuth2TokenResponse(
         // set when Jackson creates the instance, i.e. when the response is parsed
         @JsonIgnore @NotNull Instant receivedAt) {
 
+    /**
+     * Compact constructor that defaults {@code receivedAt} to {@link Instant#now()} when null.
+     */
     public OAuth2TokenResponse {
 
         if (receivedAt == null) {
@@ -27,6 +36,14 @@ public record OAuth2TokenResponse(
         }
     }
 
+    /**
+     * Creates a new OAuth2TokenResponse with {@code receivedAt} set to {@link Instant#now()}.
+     *
+     * @param accessToken  the access token issued by the authorization server
+     * @param tokenType    the type of the token issued
+     * @param expiresIn    the lifetime in seconds of the access token
+     * @param refreshToken the refresh token, which can be used to obtain new access tokens
+     */
     public OAuth2TokenResponse(@NonNull String accessToken, @NonNull String tokenType, int expiresIn, @Nullable String refreshToken) {
 
         this(accessToken, tokenType, expiresIn, refreshToken, Instant.now());

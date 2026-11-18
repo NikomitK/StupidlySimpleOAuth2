@@ -23,13 +23,19 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings("unused")
 public abstract class OAuth2FlowBase implements OAuth2Flow {
 
+    /**
+     * Shared {@link ObjectMapper} instance configured to ignore unknown JSON properties.
+     */
     protected static final ObjectMapper objectMapper = CoreUtil.createObjectMapper();
     private volatile OAuth2FlowState state;
     private final Object lock;
     private static final ScheduledExecutorService scheduler = CoreUtil.createScheduler();
 
     /**
-     * Initializes common attributes like the ObjectMapper and OAuth2TokenResponse
+     * Initializes the common lock object and sets the initial state of the flow.
+     *
+     * @param lock         the object to lock on for synchronizing state transitions
+     * @param initialState the initial state of the flow
      */
     protected OAuth2FlowBase(@NonNull final Object lock, @NonNull final OAuth2FlowState initialState) {
 
@@ -73,7 +79,7 @@ public abstract class OAuth2FlowBase implements OAuth2Flow {
 
     /**
      * Transitions the flow to a new state. The new state receives a ScheduledFuture that will transition the flow to a timeout state after the specified delay.
-     * The ScheduledFuture is meant to be cancelled if the transition
+     * The ScheduledFuture is meant to be cancelled if the state is closed before the timeout expires.
      * If the transition is invalid, an exception is thrown.
      *
      * @param newState the initialized new state to transition to.
@@ -90,6 +96,8 @@ public abstract class OAuth2FlowBase implements OAuth2Flow {
     }
 
     /**
+     * Returns the current state of the flow.
+     *
      * @return the current state of the flow.
      */
     @Contract(pure = true)

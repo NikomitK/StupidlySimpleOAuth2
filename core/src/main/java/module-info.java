@@ -1,3 +1,6 @@
+/**
+ * Core module for the StupidlySimpleOAuth2 client library.
+ */
 @SuppressWarnings("module")
 module net.nikomitk.ssoauth2 {
     requires com.fasterxml.jackson.annotation;

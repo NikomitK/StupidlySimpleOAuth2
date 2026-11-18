@@ -1,3 +1,6 @@
+/**
+ * Public client OAuth2 flows module for the StupidlySimpleOAuth2 client library.
+ */
 module net.nikomitk.ssoauth2.pubclient {
     
     requires transitive net.nikomitk.ssoauth2;
