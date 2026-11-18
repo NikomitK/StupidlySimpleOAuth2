@@ -4,6 +4,8 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import lombok.NonNull;
 import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
+import net.nikomitk.ssoauth2.dto.OAuth2ErrorCode;
+import net.nikomitk.ssoauth2.dto.OAuth2ErrorResponse;
 import net.nikomitk.ssoauth2.dto.OAuth2TokenResponse;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowInterruptedException;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowWrongStateException;
@@ -138,7 +140,9 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                 throw new OAuth2FlowInterruptedException("Authorization timed out or was cancelled");
             }
 
-            if (getState() instanceof AuthCodePresent(final String authCode, final String redirectUri, final String codeVerifier)) {
+            if (getState() instanceof AuthCodePresent(
+                    final String authCode, final String redirectUri, final String codeVerifier
+            )) {
 
                 final String body = HttpFormBodyBuilder.newBuilder()
                                                        .addFormData("grant_type", "authorization_code")
@@ -149,8 +153,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                                                        .build();
 
                 final HttpRequest request = requestBuilder(URI.create(this.configuration.endpoint()
-                                                                                        .getTokenEndpoint()), this.configuration)
-                                                                                                                                 .header("Content-Type", "application/x-www-form-urlencoded")
+                                                                                        .getTokenEndpoint()), this.configuration).header("Content-Type", "application/x-www-form-urlencoded")
                                                                                                                                  .method("POST", HttpRequest.BodyPublishers.ofString(body))
                                                                                                                                  .build();
 
@@ -322,8 +325,17 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                     CoreUtil.sendResponse(exchange, 200, "Authentication successful. You can now close this window.");
                     transitionTo(new AuthCodePresent(code, awaitingAuthCode.getRedirectUri(), awaitingAuthCode.getCodeVerifier()));
                 } else {
-                    CoreUtil.sendResponse(exchange, 500, "An error occurred. You can now close this window.");
-                    transitionTo(new Initial());
+                    final String error = UrlUtils.getQueryParameter(exchange, "error");
+                    OAuth2ErrorResponse errorResponse = null;
+                    if (error != null && !error.isBlank()) {
+                        final String errorDescription = UrlUtils.getQueryParameter(exchange, "error_description");
+                        final String errorUri = UrlUtils.getQueryParameter(exchange, "error_uri");
+                        errorResponse = new OAuth2ErrorResponse(OAuth2ErrorCode.fromString(error), errorDescription, errorUri);
+                        CoreUtil.sendResponse(exchange, 400, "Authentication failed: \"" + error + "\". You can now close this window.");
+                    } else {
+                        CoreUtil.sendResponse(exchange, 400, "An error occurred, the redirect doesn't contain an authorization code. You can now close this window.");
+                    }
+                    transitionTo(new Initial(errorResponse));
                 }
 
             } else {

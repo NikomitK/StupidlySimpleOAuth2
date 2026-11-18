@@ -22,7 +22,7 @@ Here are some of the things I have planned for the future of this library.
   - [ ] customizable html for redirect page
   - [ ] customizable redirect urls
   - [ ] possibility to provide auth code from consuming projects web server
-- [ ] proper oauth2 error handling
+- [x] proper oauth2 error handling
   - [x] handling of error codes in http requests towards auth server
-  - [ ] handling of error codes in redirect
+  - [x] handling of error codes in redirect
 
