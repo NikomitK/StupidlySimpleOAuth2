@@ -5,7 +5,7 @@ Here are some of the things I have planned for the future of this library.
 - [ ] confidential-client module
 - [ ] more grant types for the public-client module
   - [ ] device code
-- [ ] automatically refresh if expired
+- [x] automatically refresh if expired
 - [ ] properly expose more customization possibilities
   - [x] used httpclient
   - [ ] logging
@@ -27,4 +27,7 @@ Here are some of the things I have planned for the future of this library.
   - [x] handling of error codes in http requests towards auth server
   - [x] handling of error codes in redirect
 - [ ] oidc support
-
+- [ ] more testing
+  - [ ] mutation testing
+  - [ ] better coverage
+  - [ ] maybe test-containers (or similar) setup with real authorization server(s)
