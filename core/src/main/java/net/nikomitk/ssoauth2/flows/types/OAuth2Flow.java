@@ -37,11 +37,18 @@ public interface OAuth2Flow {
 
 
     /**
-     * Get a valid {@link OAuth2AccessToken} with an {@link Instant} describing the end of validity
+     * Get an {@link OAuth2AccessToken} with an {@link Instant} describing the end of validity
      * @return the last acquired OAuth2AccessToken
      */
     @Contract(pure = true)
     @NotNull
     OAuth2AccessToken getAccessToken();
+
+    /**
+     * Get a valid {@link OAuth2AccessToken} with an {@link Instant} describing the end of validity
+     * @return the last acquired OAuth2AccessToken
+     */
+    @NotNull
+    OAuth2AccessToken getValidAccessToken();
 
 }

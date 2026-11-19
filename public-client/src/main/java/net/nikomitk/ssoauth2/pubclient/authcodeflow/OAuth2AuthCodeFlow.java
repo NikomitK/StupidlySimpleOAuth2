@@ -140,9 +140,7 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                 throw new OAuth2FlowInterruptedException("Authorization timed out or was cancelled");
             }
 
-            if (getState() instanceof AuthCodePresent(
-                    final String authCode, final String redirectUri, final String codeVerifier
-            )) {
+            if (getState() instanceof AuthCodePresent(final String authCode, final String redirectUri, final String codeVerifier)) {
 
                 final String body = HttpFormBodyBuilder.newBuilder()
                                                        .addFormData("grant_type", "authorization_code")
@@ -242,6 +240,18 @@ public class OAuth2AuthCodeFlow extends OAuth2FlowBase implements ResettableFlow
                                                                 .getSimpleName(), new String[]{"AuthorizedState"});
         }
 
+    }
+
+
+    @Override
+    public @NotNull OAuth2AccessToken getValidAccessToken() {
+
+        final var currentState = getState();
+        if (currentState instanceof AwaitingAuthCode || currentState instanceof AuthCodePresent) {
+            return requestAccessToken().getAccessToken();
+        }
+
+        return super.getValidAccessToken();
     }
 
     /**

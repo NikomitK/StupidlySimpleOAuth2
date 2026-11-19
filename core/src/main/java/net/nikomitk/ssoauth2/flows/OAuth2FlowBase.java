@@ -2,8 +2,11 @@ package net.nikomitk.ssoauth2.flows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.NonNull;
+import net.nikomitk.ssoauth2.dto.OAuth2AccessToken;
 import net.nikomitk.ssoauth2.exception.OAuth2FlowInvalidTransitionException;
+import net.nikomitk.ssoauth2.exception.OAuth2FlowWrongStateException;
 import net.nikomitk.ssoauth2.flows.types.OAuth2Flow;
+import net.nikomitk.ssoauth2.states.AuthorizedState;
 import net.nikomitk.ssoauth2.states.ClosableState;
 import net.nikomitk.ssoauth2.states.ExpiringState;
 import net.nikomitk.ssoauth2.states.OAuth2FlowState;
@@ -115,6 +118,23 @@ public abstract class OAuth2FlowBase implements OAuth2Flow {
                     transitionTo(next);
             }
         }, duration.toMillis(), TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public @NotNull OAuth2AccessToken getValidAccessToken() {
+
+        synchronized (lock) {
+            if (getState() instanceof final AuthorizedState authorizedState) {
+                if (authorizedState.getAccessToken()
+                                   .isExpired()) {
+                    refreshAccessToken();
+                }
+                return getAccessToken();
+            } else {
+                throw new OAuth2FlowWrongStateException(getState().getClass()
+                                                                  .getSimpleName(), new String[]{"AuthorizedState"});
+            }
+        }
     }
 
 }

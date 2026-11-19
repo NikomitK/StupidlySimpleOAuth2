@@ -18,6 +18,8 @@ public record Initial(@Nullable Object error) implements AuthCodeFlowState {
     }
 
     public Initial() {
+
         this(null);
     }
+
 }

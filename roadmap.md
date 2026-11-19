@@ -27,3 +27,4 @@ Here are some of the things I have planned for the future of this library.
   - [x] handling of error codes in http requests towards auth server
   - [x] handling of error codes in redirect
 - [ ] oidc support
+
