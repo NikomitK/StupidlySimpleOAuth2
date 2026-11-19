@@ -9,6 +9,7 @@ Here are some of the things I have planned for the future of this library.
 - [ ] properly expose more customization possibilities
   - [x] used httpclient
   - [ ] logging
+    - [ ] decide if slf4j or java system logger
   - [x] user agent
   - [x] timeouts
 - [ ] token revocation
@@ -21,7 +22,7 @@ Here are some of the things I have planned for the future of this library.
 - [ ] redirect customization
   - [ ] customizable html for redirect page
   - [ ] customizable redirect urls
-  - [ ] possibility to provide auth code from consuming projects web server
+- [ ] possibility to provide auth code from consuming projects web server
 - [x] proper oauth2 error handling
   - [x] handling of error codes in http requests towards auth server
   - [x] handling of error codes in redirect
